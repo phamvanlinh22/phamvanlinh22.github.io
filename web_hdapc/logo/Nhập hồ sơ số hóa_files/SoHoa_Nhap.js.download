@@ -1,0 +1,3768 @@
+﻿var ThaoTacVanban = "";
+var listFileUpload = [];
+var ListImages;
+var cropper;// thư viện cropper
+var data_page = 0;
+var SoHoa = {
+    Images: [],
+    Files: [],
+    Current: 0,
+}
+var TruongDuLieuChuaXacDinh = 'Trường dữ liệu chưa xác định';
+var dya;
+var id_grid = '#kqnhandang';
+var ArrData = [];
+var ArrData2 = [];
+var ThaoTacThem = "them";
+$(function () {
+    if (!$('#sidebar').hasClass('menu-min')) {
+        $('#sidebar').addClass('menu-min');
+    }
+    $('#lblNhomVanBan').html("");
+    LoadDuLieu_Grid1();
+    thongtinNhanh();
+    KiemTraHoSoLuuTru();
+    loadnhanh();
+    //Grid3.refresh();
+});
+class dyamicForm {
+    constructor(target, data, template) {
+        this.target = document.querySelector(target);
+        Object.keys(data).forEach(function (key) {
+            data[key]._index = key;
+        });
+        this.data = data;
+        this.template = template;
+        this.render();
+    }
+    render() {
+        var html = '';
+        var template = this.template;
+        var data = this.data;
+        Object.keys(data).forEach(function (key) {
+            html += template(data[key]);
+        });
+        this.target.innerHTML = html;
+    }
+    add(item) {
+        item._index = this.data.length;
+        this.data.push(item);
+        var template = this.template;
+        $(this.target).append(template(item));
+    }
+    remove(index) {
+        this.target.removeChild(this.target.childNodes[index]);
+    }
+    removeAll() {
+        this.target.innerHTML = '';
+    }
+}
+function loadnhanh() {
+
+    var coll = document.getElementsByClassName("collapsible");
+    var m;
+    for (m = 0; m < coll.length; m++) {
+        coll[m].addEventListener("click", function () {
+            this.classList.toggle("active2");
+            var content = this.nextElementSibling;
+            if (content.style.maxHeight) {
+                content.style.maxHeight = null;
+            } else {
+                content.style.maxHeight = content.scrollHeight + "px";
+            }
+        });
+    }
+    return false;
+}
+function LoadDuLieu_Grid1() {
+    GridCayHoSo.setData(NTS.getAjax('json', "/View/QuanLy/SoHoav2/SoHoa_Nhap.aspx/GetAll", {}));
+    //$('.tabulator-data-tree-control').click();
+    if (GridCayHoSo.rowManager.displayRowsCount > 1) {
+        var data = GridCayHoSo.getData()[0];
+        $('#hdfloaiHoSopr_sd2').value(data.loaiHoSopr_sd);
+        $('#hfdsttHoSoVBLuuTrupr').value(data.sttHoSoVBLuuTrupr);
+
+        getDataHoSoVBLuuTruCT(data.sttHoSoVBLuuTrupr, data.loaiHoSopr_sd);
+    } else {
+        getDataHoSoVBLuuTruCT("0", "0");
+    }
+    //$('#GridCayHoSo .tabulator-tree-level-1').first().click();
+    var result_hdfsttDuAnpr_sd = NTS.getAjax('json', '/View/QuanLy/SoHoav2/SoHoa_Nhap.aspx/layThongTinHoSoVBLuuTru', {});
+    $('#hdfsttDuAnpr_sd').value(result_hdfsttDuAnpr_sd[0].sttDuAnpr_sd);
+    $('#hfdsttHoSoVBLuuTrupr').value(result_hdfsttDuAnpr_sd[0].sttHoSoLuuTrupr);
+    $('#ctl00_ContentPlaceHolder1_hdf_sttHoSoVBLuuTrupr_sd').value(result_hdfsttDuAnpr_sd[0].sttHoSoLuuTrupr);
+    $('#TenHoSo').value(result_hdfsttDuAnpr_sd[0].TenHoSo);
+}
+function KiemTraHoSoLuuTru() {
+    var resultKiemTra = NTS.getAjax('json', '/View/QuanLy/SoHoav2/SoHoa_Nhap.aspx/KiemTraNhomSoHoa', { sttHoSoLuuTrupr: $('#hfdsttHoSoVBLuuTrupr').value() });
+    if (resultKiemTra == "1") {
+        var data = NTS.getAjax_v1('/View/quanly/SoHoav2/SoHoa_Nhap.aspx/LuuThongTinNhomVanBan_MacDinh', { sttHoSoLuuTrupr: $('#hfdsttHoSoVBLuuTrupr').value() });
+    }
+    setTimeout(
+        function myfunction() {
+            GridCayHoSo.setData(NTS.getAjax('json', "/View/QuanLy/SoHoav2/SoHoa_Nhap.aspx/GetAll", {}));
+            GridCayHoSo.redraw(!0);
+        }
+        , 100);
+}
+function thongtinNhanh() {
+    var result = NTS.getAjax('json', '/View/QuanLy/SoHoav2/SoHoa_Nhap.aspx/layThongTinNhanh', { data: $('#hfdsttHoSoVBLuuTrupr').value() });
+    $('#lbTKHSDaSH').text(result[0].DaSoHoa.toString().replace(/\B(?=(\d{3})+(?!\d))/g, "."));
+    $('#lbTKHSChuaSH').text(result[0].ChuaSoHoa.toString().replace(/\B(?=(\d{3})+(?!\d))/g, "."));
+}
+function getNhomVanBan(sttNhomSoHoapr) {
+    var result = NTS.getAjax('json', '/View/QuanLy/SoHoav2/SoHoa_Nhap.aspx/getNhomVanBanByID', { data: sttNhomSoHoapr });
+    $('#lblNhomVanBan').html('<b>Nhóm văn bản</b>: ' + result[0].tenNhomSoHoa);
+}
+function htmlWrapFormatter(cell, formatterParams, onRendered) {
+    cell.getElement().style.whiteSpace = "pre-wrap";
+    return this.emptyToSpace(cell.getValue());
+}
+$(document).on('click', '.tabulator-page', function () {
+    updateFooter2();
+    updateFooter3();
+    updateFooter();
+});
+$(document).on('change', '.tabulator-page-size', function () {
+    updateFooter2();
+    updateFooter3();
+    updateFooter();
+});
+$(document).on('click', '.tabulator-footer', function () {
+    updateFooter2();
+    updateFooter3();
+    updateFooter();
+});
+var TabulatorLangsVi = {
+    "vi": {
+        "columns": {
+            "name": "Name",
+        },
+        "ajax": {
+            "loading": "Đang tải...",
+            "error": "Lỗi tải dữ liệu",
+        },
+        "groups": {
+            "item": "dòng",
+            "items": "dòng",
+        },
+        "pagination": {
+            "page_size": "Kích thước",
+            "page_title": "Hiển thị",
+            "first": '<i class="fa fa-step-backward" aria-hidden="true"></i>',
+            "first_title": "Trang đầu",
+            "last": '<i class="fa fa-step-forward" aria-hidden="true"></i>',
+            "last_title": "Trang cuối",
+            "prev": '<i class="fa fa-chevron-left" aria-hidden="true"></i>',
+            "prev_title": "Lùi lại",
+            "next": '<i class="fa fa-chevron-right" aria-hidden="true"></i>',
+            "next_title": "Kế tiếp",
+            "all": "All",
+        },
+        "headerFilters": {
+            "default": "filter column...",
+            "columns": {
+                "name": "filter name...",
+            }
+        }
+    }
+}
+function htmlWrapFormatter(cell, formatterParams, onRendered) {
+    cell.getElement().style.whiteSpace = "pre-wrap";
+    var dataRow = cell.getRow().getData();
+    if (dataRow.Id.search('ROOT') != -1) {
+        return this.emptyToSpace(dataRow.Text + ` (<span id="nhomVb_DuAn">` + dataRow.SoLuong + `<span>)`);
+    }
+    else {
+        if (dataRow.Id == "010" || dataRow.Id == "020") {
+            return this.emptyToSpace(`&ensp;` + dataRow.Text);
+        } else {
+            return this.emptyToSpace(`<button class="btn btn-xs btn-primary btnSuaGridCayHoSo" onclick="return false;" title="Sửa" data="${dataRow.Id}"><i class="fa fa-pencil"></i></button> <button class="btn btn-xs btn-danger btnXoaGridCayHoSo" title="Xóa" data="${dataRow.Id}"><i class="fa fa-trash"></i></button>&ensp;` + dataRow.Text + ` (<span id="nhomVb_${dataRow.Id}">` + dataRow.SoLuong + `<span>)`);
+        }
+    }
+
+}
+var GridCayHoSo = new Tabulator("#GridCayHoSo", {
+    height: 640,
+    dataTree: true,
+    dataTreeStartExpanded: true,
+    layout: "fitColumns",
+    pagination: "local",
+    selectable: 1,
+    dataTreeChildField: "Children",
+    pagination: false,
+    dataTreeStartExpanded: [true, true, false],
+    columns: [
+        { title: "Hồ sơ", field: "HoSo", hozAlign: "left", visible: true, minWidth: 300, formatter: htmlWrapFormatter, headerSort: false },
+        { title: "parent", field: "Parent", hozAlign: "left", visible: false, width: 110 },
+        { title: "sttHoSoVBLuuTrupr", field: "Id", hozAlign: "left", visible: false, width: 110 },
+        { title: "SoLuong", field: "SoLuong", hozAlign: "left", visible: false, width: 110 },
+    ],
+    rowClick: function (e, row) {
+        vitri = row.getPosition(true);
+        $('#hdfloaiHoSopr_sd2').value(row.getData().Id);
+        getDataHoSoVBLuuTruCT($('#hfdsttHoSoVBLuuTrupr').value(), row.getData().Id);
+        getNhomVanBan(row.getData().Id);
+    },
+    locale: true,
+    langs: TabulatorLangsVi,
+    placeholder: 'Không có dữ liệu',
+});
+
+$(document).on('keyup', '#timKiem', function (e) {
+
+    if (e.keyCode == '13') {
+        GridCayHoSo.setFilter(matchAny, { value: $(this).val() });
+    }
+});
+$(document).on('click', '.btnSuaGridCayHoSo', function () {
+    if (!ntspermiss.sua) {
+        NTS.canhbao("User bạn đang sử dụng không thể thực hiện thao tác chỉnh sửa. Vui lòng kiểm tra lại.");
+        return false;
+    }
+    // Tạm thời ẩn code
+    //var data = NTS.getAjax('json', '/View/QuanLy/SoHoav2/SoHoa_Nhap.aspx/KiemTraHoSoQT', { sttHoSoLuuTrupr: $('#hfdsttHoSoVBLuuTrupr').value() });
+    //if (data == "0") {
+    //    NTS.canhbao("Hồ sơ quyết toán đã được nộp, bạn không thể thực hiện thao tác!");
+    //    return false;
+    //}
+
+    ThaoTacThem = "sua";
+    var data = NTS.getAjax_v1('/View/QuanLy/SoHoav2/SoHoa_Nhap.aspx/GetNhomSoHoaID', { data: $(this).attr('data') });
+    if (data.Result != null) {
+
+        $('#hdfsttNhomSoHoapr').val(data.Result.Table[0].sttNhomSoHoapr);
+        NTS.loadDataCombo({
+            name: '#selNhomSoHoa_cha',
+            ajaxUrl: '/View/quanly/SoHoav2/SoHoa_Nhap.aspx/GetNhomSoHoa_CapNhat',
+            ajaxParam: $('#hdfsttNhomSoHoapr').val(),
+            columns: 1,
+            indexValue: 0,
+            indexText: 1,
+        });
+        NTS.loadDataCombo({
+            name: '#selloaiHoSo',
+            ajaxUrl: '/View/quanly/SoHoav2/SoHoa_Nhap.aspx/GetloaiHoSo',
+            indexValue: 0,
+            indexText: 0,
+            indexText1: 1,
+            textShowTatCa: '',
+            hideshowTatCa: false,
+            showTatCa: !0,
+            columns: 2
+        });
+        NTS.loadDataCombo({
+            name: '#selmaChiPhiDTXD',
+            ajaxUrl: '/View/quanly/SoHoav2/SoHoa_Nhap.aspx/GetmaChiPhiDTXD',
+            indexValue: 0,
+            indexText: 0,
+            indexText1: 1,
+            textShowTatCa: '',
+            hideshowTatCa: false,
+            showTatCa: !0,
+            columns: 2
+        });
+        $('#tenNhomSoHoa').value(data.Result.Table[0].tenNhomSoHoa);
+        $('#selNhomSoHoa_cha').value(data.Result.Table[0].sttNhomSoHoapr_cha + '');
+        $('#selloaiHoSo').value(data.Result.Table[0].loaiHoSopr_sd);
+        $('#selmaChiPhiDTXD').value(data.Result.Table[0].maChiPhiDTXDpr_sd);
+        $('#ModalCapNhatNhomVB').modal('show');
+        $('#tieuDeModalCapNhatNhomVB').html('Cập nhật nhóm văn bản số hóa');
+        var result = NTS.getAjax('json', '/View/QuanLy/SoHoav2/SoHoa_Nhap.aspx/GetmaNhomSoHoaSua', { sttNhomSoHoapr: $('#hdfsttNhomSoHoapr').value() });
+        var maNhomCap0 = data.Result.Table[0].maNhomCap0;
+        if (data.Result.Table[0].sttNhomSoHoapr_cha == "") {
+            $('#maNhom').value(maNhomCap0);
+            $('#maNhomSoHoa').value((data.Result.Table[0].maNhomSoHoa).replace(maNhomCap0, ''));
+        } else {
+            $('#maNhom').value(data.Result.Table[0].maNhomSoHoa_cha);
+            $('#maNhomSoHoa').value((data.Result.Table[0].maNhomSoHoa).replace(data.Result.Table[0].maNhomSoHoa_cha, ''));
+        }
+        //$('#maNhom').value(result.substring(0, result.lastIndexOf(".") + 1));
+        $('#maNhom').prop('disabled', true);
+        $('#maNhomSoHoa').prop('disabled', true);
+        //var data_selNhomSoHoa_cha = NTS.getAjax('json', '/View/QuanLy/SoHoav2/SoHoa_Nhap.aspx/GetmaNhomSoHoa', { sttNhomSoHoa_cha: $('#selNhomSoHoa_cha').value() });
+        //$('#maNhom').value(data.Result.Table[0].maNhomSoHoa_cha + '.');
+        //$('#maNhomSoHoa').value(result.replaceAll(data.Result.Table[0].maNhomSoHoa_cha + '.', ''));
+        //$('#maNhom').prop('disabled', true);
+        //$('#maNhomSoHoa').prop('disabled', false);
+        /*    $('#maNhomSoHoa').value("");*/
+        return false;
+    }
+    else {
+        NTS.canhbao("Không tìm thấy không tin bạn cần chỉnh sửa!");
+    }
+});
+$(document).on('click', '.btnXoaGridCayHoSo', function () {
+    if (!ntspermiss.xoa) {
+        NTS.canhbao("User bạn đang sử dụng không thể thực hiện thao tác xoá. Vui lòng kiểm tra lại.");
+        return false;
+    }
+    //var data = NTS.getAjax('json', '/View/QuanLy/SoHoav2/SoHoa_Nhap.aspx/KiemTraHoSoQT', { sttHoSoLuuTrupr: $('#hfdsttHoSoVBLuuTrupr').value() });
+    //if (data == "0") {
+    //    NTS.canhbao("Hồ sơ quyết toán đã được nộp, bạn không thể thực hiện thao tác!");
+    //    return false;
+    //}
+    var ID = $(this).attr('data');
+    var resultKT = NTS.getAjax('json', '/View/QuanLy/SoHoav2/SoHoa_Nhap.aspx/KiemTraNhomVanBan', { data: ID });
+    if (resultKT.split('_')[0] == "-1") {
+        bootbox.confirm({
+            message: NTS.CauThongBaoXoa(),
+            title: "Cảnh báo",
+            className: 'bb-alternate-modal', animate: false,
+            buttons: {
+
+                cancel: {
+                    label: '<i class="fa fa-close"></i> Hủy bỏ',
+                    className: "btn-danger btn-sm",
+                },
+                confirm: {
+
+                    label: '<i class="fa fa-check"></i> Chấp nhận',
+                    className: "btn-primary btn-sm",
+                }
+            },
+            callback: function (result) {
+                if (result) {
+                    var data = NTS.getAjax_v1('/View/QuanLy/SoHoav2/SoHoa_Nhap.aspx/XoaNhomVanBan', { data: ID });
+                    if (!data.Err) {
+                        LoadDuLieu_Grid1();
+                        thongtinNhanh();
+                    }
+
+                }
+            }
+        });
+    } else {
+        NTS.canhbao(resultKT.split('_')[1]);
+    }
+
+    return false;
+});
+//Chọn hồ sơ
+//Lưới Nhóm văn bản
+function getDataNhomVanBan() {
+    setTimeout(function () {
+        table2.setData(NTS.getAjax_v1('/View/quanly/SoHoav2/SoHoa_Nhap.aspx/GetDataNhomVanBan', {}));
+        table2.redraw(true);
+    }, 1);
+}
+//Lưới danh sách văn bản thuộc nhóm văn bản
+function getDataLoaiVanBan(sttDuAnpr_sd, LoaiHoSo) {
+    setTimeout(function () {
+        table3.setData(NTS.getAjax_v1('/View/quanly/SoHoav2/SoHoa_Nhap.aspx/GetDataLoaiVanBan', { sttDuAnpr_sd: sttDuAnpr_sd, LoaiHoSo: LoaiHoSo }));
+        table3.redraw(true);
+        $('.tabulator-calcs-bottom.tabulator-row-odd').hide();
+        $('.tabulator-calcs-bottom.tabulator-row-even').hide();
+    }, 100);
+
+}
+$('#btnChonHoSo2').on('click', function () {
+    ThaoTacThem = "them";
+    $('#ModalCapNhatNhomVB').modal('show');
+    $('#tieuDeModalCapNhatNhomVB').html('Thêm mới nhóm văn bản số hóa');
+    //getDataNhomVanBan();
+    //setTimeout(function () {
+    //    table2.redraw(true);
+    //    table3.redraw(true);
+    //}, 5);
+    NTS.loadDataCombo({
+        name: '#selNhomSoHoa_cha',
+        ajaxUrl: '/View/quanly/SoHoav2/SoHoa_Nhap.aspx/GetNhomSoHoa',
+        columns: 1,
+        indexValue: 0,
+        indexText: 1,
+    });
+
+    NTS.loadDataCombo({
+        name: '#selloaiHoSo',
+        ajaxUrl: '/View/quanly/SoHoav2/SoHoa_Nhap.aspx/GetloaiHoSo',
+        indexValue: 0,
+        indexText: 0,
+        indexText1: 1,
+        textShowTatCa: '',
+        hideshowTatCa: false,
+        showTatCa: !0,
+        columns: 2
+    });
+    NTS.loadDataCombo({
+        name: '#selmaChiPhiDTXD',
+        ajaxUrl: '/View/quanly/SoHoav2/SoHoa_Nhap.aspx/GetmaChiPhiDTXD',
+        indexValue: 0,
+        indexText: 0,
+        indexText1: 1,
+        textShowTatCa: '',
+        hideshowTatCa: false,
+        showTatCa: !0,
+        columns: 2
+    });
+    var result = NTS.getAjax('json', '/View/QuanLy/SoHoav2/SoHoa_Nhap.aspx/GetmaDonVi', {});
+    var result2 = NTS.getAjax('json', '/View/QuanLy/SoHoav2/SoHoa_Nhap.aspx/GetSoHoSo', { sttHoSoLuuTrupr: $('#hfdsttHoSoVBLuuTrupr').value() });
+    $('#maNhom').value(result + '.' + result2 + '.');
+    $('#maNhom').prop('disabled', true);
+    $('#maNhomSoHoa').prop('disabled', false);
+    $('#tenNhomSoHoa').value("");
+    $('#maNhomSoHoa').value("");
+    $('#selNhomSoHoa_cha').value("");
+    $('#selloaiHoSo').value("");
+    $('#selmaChiPhiDTXD').value("");
+    $('#hdfsttNhomSoHoapr').val("");
+
+    return false;
+});
+
+$(document).on('select2:select', '#selNhomSoHoa_cha', function myfunction() {
+    if (ThaoTacThem == "them") {
+        if ($('#selNhomSoHoa_cha').value() != "") {
+            var result = NTS.getAjax('json', '/View/QuanLy/SoHoav2/SoHoa_Nhap.aspx/GetmaNhomSoHoa', { sttNhomSoHoa_cha: $('#selNhomSoHoa_cha').value() });
+            $('#maNhom').value(result + '.');
+            $('#maNhom').prop('disabled', true);
+            $('#maNhomSoHoa').prop('disabled', false);
+            $('#maNhomSoHoa').value("");
+        } else {
+            var result = NTS.getAjax('json', '/View/QuanLy/SoHoav2/SoHoa_Nhap.aspx/GetmaDonVi', {});
+            var result2 = NTS.getAjax('json', '/View/QuanLy/SoHoav2/SoHoa_Nhap.aspx/GetSoHoSo', { sttHoSoLuuTrupr: $('#hfdsttHoSoVBLuuTrupr').value() });
+            $('#maNhom').value(result + '.' + result2 + '.');
+            $('#maNhom').prop('disabled', true);
+            $('#maNhomSoHoa').prop('disabled', false);
+            $('#maNhomSoHoa').value("");
+        }
+    } else {
+        if ($('#selNhomSoHoa_cha').value() != "") {
+            var result = NTS.getAjax('json', '/View/QuanLy/SoHoav2/SoHoa_Nhap.aspx/GetmaNhomSoHoa', { sttNhomSoHoa_cha: $('#selNhomSoHoa_cha').value() });
+            $('#maNhom').value(result + '.');
+            $('#maNhom').prop('disabled', true);
+            $('#maNhomSoHoa').prop('disabled', false);
+            /*    $('#maNhomSoHoa').value("");*/
+        } else {
+            var result = NTS.getAjax('json', '/View/QuanLy/SoHoav2/SoHoa_Nhap.aspx/GetmaNhomSoHoaSua', { sttNhomSoHoapr: $('#hdfsttNhomSoHoapr').value() });
+            $('#maNhom').value(result.substring(0, result.lastIndexOf(".") + 1));
+            $('#maNhomSoHoa').value(result.replaceAll(result2 + '.', ""));
+            $('#maNhom').prop('disabled', true);
+            $('#maNhomSoHoa').prop('disabled', false);
+        }
+    }
+    return false;
+});
+function LuuThongTinNhomVanBan(duLieu) {
+    if ($("#maNhomSoHoa").isempty("Mã nhóm văn bản không được bỏ trống!")) return false;
+    if ($("#tenNhomSoHoa").isempty("Tên nhóm văn bản không được bỏ trống!")) return false;
+    var param = new Array();
+    param[0] = $('#tenNhomSoHoa').value();
+    param[1] = $('#selNhomSoHoa_cha').value();
+    param[2] = $('#hfdsttHoSoVBLuuTrupr').value();
+    param[3] = ThaoTacThem;
+    param[4] = $('#maNhom').value() + '' + $('#maNhomSoHoa').value();
+    param[5] = $('#hdfsttNhomSoHoapr').val();
+    param[6] = $('#selloaiHoSo').value();
+    param[7] = $('#selmaChiPhiDTXD').value();
+    var result = NTS.getAjax_v1('/View/quanly/SoHoav2/SoHoa_Nhap.aspx/LuuThongTinNhomSoHoa', { data: param });
+    if (result.split('_')[0] == "1") {
+        NTS.thongbao(result.split('_')[1]);
+        $('#ModalCapNhatNhomVB').modal('hide');
+        LoadDuLieu_Grid1();
+        thongtinNhanh();
+        return false;
+    }
+    else if (result.split('_')[0] == "2") {
+        NTS.thongbao(result.split('_')[1]);
+        return false;
+    }
+}
+function ChonVanBan() {
+    //var data = NTS.getAjax('json', '/View/QuanLy/SoHoav2/SoHoa_Nhap.aspx/KiemTraHoSoQT', { sttHoSoLuuTrupr: $('#hfdsttHoSoVBLuuTrupr').value() });
+    //if (data == "0") {
+    //    NTS.canhbao("Hồ sơ quyết toán đã được nộp, bạn không thể thực hiện thao tác!");
+    //    return false;
+    //}
+    $('#ModalChonHoSo').modal('show');
+    NTS.loadDataCombo({
+        name: '#selLoaiVanBanSoHoa',
+        ajaxUrl: '/View/quanly/SoHoav2/SoHoa_Nhap.aspx/GetLoaiVanBanSoHoa',
+        ajaxParam: $('#hdfsttDuAnpr_sd').value(),
+        columns: 1,
+        indexValue: 0,
+        indexText: 1,
+    });
+    setTimeout(function () {
+        table3.redraw(true);
+    }, 5);
+    //getDataNhomVanBan();
+    //setTimeout(function () {
+    //    table2.redraw(true);
+    //    table3.redraw(true);
+    //}, 5);
+}
+function changeLoaiVanBan() {
+    //if ($("#selLoaiVanBanSoHoa").value() != "") {
+    getDataLoaiVanBan($('#hdfsttDuAnpr_sd').value(), $("#selLoaiVanBanSoHoa").val());
+    //}
+}
+function updateFooter2() {
+    var el = document.getElementById("row-count2");
+    if (table2 != undefined) {
+        var Grid = table2;
+        if (Grid.rowManager.activeRows.length > 0) {
+            el.innerHTML = 'Dòng: ' + (Grid.rowManager.table.footerManager.links[0].page * Grid.rowManager.table.footerManager.links[0].size - Grid.rowManager.table.footerManager.links[0].size + 1) + ' - ' + (Grid.rowManager.table.footerManager.links[0].page * Grid.rowManager.table.footerManager.links[0].size - Grid.rowManager.table.footerManager.links[0].size + Grid.rowManager.displayRowsCount) + ' của ' + Grid.rowManager.activeRows.length + " - ";
+        }
+        else {
+            el.innerHTML = 'Dòng: 0 - 0 của 0 - ';
+        }
+    }
+}
+var table2 = new Tabulator("#Grid2", {
+    height: 350,
+    layout: "fitColumns",
+    pagination: "local",
+    selectable: true,
+    paginationSize: 50,
+    paginationSizeSelector: [50, 100, 150, 250, 500, true],
+    columns: [ //Define Table Columns
+        {
+            formatter: "rowSelection", titleFormatter: "rowSelection", hozAlign: "center", cellClick: function (e, cell) {
+                cell.getRow().toggleSelect();
+            }, width: 40, headerSort: false
+        },
+        { title: "Nhóm văn bản", field: "tenHoSo", formatter: 'textarea', hozAlign: "left", visible: true },
+        { title: "loaiHoSopr_sd", field: "loaiHoSopr_sd", formatter: 'textarea', hozAlign: "left", visible: false, width: 0 },
+    ],
+    footerElement: "<span id='row-count2' style='color:#102D4F;font-size: 13px; font-family: Arial, Helvetica, sans-serif;font-weight:100'></span>", //add element element to footer to contain count
+    dataFiltered: updateFooter2,
+    dataLoaded: updateFooter2,
+    rowClick: function (e, row) {
+        vitri = row.getPosition(true);
+        $('#hdfloaiHoSopr').value(row.getData().sttHoSoQTpr);
+        var LoaiHoSo = "(";
+        for (var j = 0; j < table2.getSelectedData().length; j++) {
+
+            if (j == 0) {
+                LoaiHoSo += "'" + table2.getSelectedData()[j].loaiHoSopr_sd + "'";
+            } else {
+                LoaiHoSo += ",'" + table2.getSelectedData()[j].loaiHoSopr_sd + "'";
+            }
+        }
+        LoaiHoSo += ")";
+        getDataLoaiVanBan($('#hdfsttDuAnpr_sd').value(), LoaiHoSo);
+    },
+    locale: true,
+    langs: TabulatorLangsVi,
+    placeholder: 'Không có dữ liệu',
+});
+$(document).on('keyup', '#timKiem2', function (e) {
+    if (e.keyCode == '13') {
+        table2.setFilter(matchAny, { value: $(this).val() });
+        updateFooter2();
+    }
+});
+function updateFooter3() {
+
+    var el = document.getElementById("row-count3");
+    if (table3 != undefined) {
+        var Grid = table3;
+        if (Grid.rowManager.activeRows.length > 0) {
+            var SoDongHienTai = 0;
+            for (var i = 0; i < Grid.rowManager.displayRows[2].length; i++) {
+                if (Grid.rowManager.displayRows[2][i].type == "row") {
+                    SoDongHienTai++;
+                }
+            }
+            el.innerHTML = 'Dòng: ' + (Grid.rowManager.table.footerManager.links[0].page * Grid.rowManager.table.footerManager.links[0].size - Grid.rowManager.table.footerManager.links[0].size + 1) + ' - ' + (Grid.rowManager.table.footerManager.links[0].page * Grid.rowManager.table.footerManager.links[0].size - Grid.rowManager.table.footerManager.links[0].size + SoDongHienTai) + ' của ' + Grid.rowManager.activeRows.length + " - ";
+        }
+        else {
+            el.innerHTML = 'Dòng: 0 - 0 của 0 - ';
+        }
+    }
+}
+var nestedCalc = function (values, data, calcParams) {
+    var calc = 0;
+
+    data.forEach(function (row) {
+        row._children.forEach(function (child) {
+            calc += child[calcParams.field];
+        })
+    });
+
+    return calc;
+}
+//count number of users over 18
+var adultCalc = function (values, data, calcParams) {
+    //values - array of column values
+    //data - all table data
+    //calcParams - params passed from the column definition object
+
+    var calc = 0;
+
+    values.forEach(function (value) {
+        if (value > 18) {
+            calc++;
+        }
+    });
+
+    return calc;
+}
+var tongCot = function (values, data, calcParams) {
+    console.log(values);
+    var calc = 0;
+    values.forEach(function (value) {
+        calc += parseFloat((value == null || value == undefined) ? 0 : value);
+    });
+    return formatNumber(calc != undefined && calc != null ? calc : '').toString();
+}
+var textTongCot = function (values, data, calcParams) {
+    return 'Tổng cộng';
+}
+var dinhDangSo = function (cell, formatterParams, onRendered) {
+    return formatNumber(cell.getValue() != undefined && cell.getValue() != null ? cell.getValue() : '').toString();
+}
+var table3 = new Tabulator("#Grid3", {
+    height: 450,
+    layout: "fitColumns",
+    pagination: "local",
+    selectable: true,
+    paginationSize: 50,
+    columnCalcs: "both",
+    columnHeaderVertAlign: "center",
+    paginationSizeSelector: [50, 100, 150, 250, 500, true],
+    groupBy: ["tenLoaiVBan"],
+    columns: [ //Define Table Columns
+        {
+            formatter: "rowSelection", titleFormatter: "rowSelection", hozAlign: "center", cellClick: function (e, cell) {
+                cell.getRow().toggleSelect();
+            }, width: 40, headerSort: false, vertAlign: "middle"
+        },
+        { title: "Thao tác", field: "DinhKem", hozAlign: "center", formatter: 'html', width: 60, headerSort: false, vertAlign: "middle" },
+        { title: "Số văn bản", field: "soVanBan", formatter: 'textarea', hozAlign: "left", visible: true, width: 100, vertAlign: "middle", bottomCalc: textTongCot },
+        { title: "Ngày ký", field: "ngayKy", formatter: 'textarea', hozAlign: "center", visible: true, width: 90, vertAlign: "middle" },
+        { title: "Người ký", field: "tenNguoiKy", formatter: 'textarea', hozAlign: "left", visible: true, width: 100, vertAlign: "middle" },
+        { title: "Trích yếu", field: "trichYeu", formatter: 'textarea', width: 250, hozAlign: "left", visible: true, vertAlign: "middle" },
+        { title: "Cơ quan ban hành", field: "coQuanBanHanh", formatter: 'textarea', width: 250, hozAlign: "left", visible: true, vertAlign: "middle" },
+        { title: "Nội dung", field: "noiDung", formatter: 'textarea', width: 300, hozAlign: "left", visible: true, vertAlign: "middle" },
+        { title: "Loại văn bản", field: "tenLoaiVBan", formatter: 'textarea', hozAlign: "left", visible: true, width: 250, vertAlign: "middle" },
+        { title: "Giá trị", field: "soTien", formatter: dinhDangSo, hozAlign: "right", visible: true, width: 120, vertAlign: "middle", bottomCalc: tongCot },
+        { title: "sttVBDApr", field: "sttVBDApr", formatter: 'textarea', hozAlign: "left", visible: false, width: 0, vertAlign: "middle" },
+    ],
+    footerElement: "<span id='row-count3' style='color:#102D4F;font-size: 13px; font-family: Arial, Helvetica, sans-serif;font-weight:100'></span>", //add element element to footer to contain count
+    dataFiltered: updateFooter3,
+    dataLoaded: updateFooter3,
+    locale: true,
+    langs: TabulatorLangsVi,
+    placeholder: 'Không có dữ liệu',
+});
+table3.setLocale("vi");
+$(document).on('keyup', '#timKiem3', function (e) {
+    if (e.keyCode == '13') {
+        table3.setFilter(matchAny, { value: $(this).val() });
+        updateFooter3();
+        $('.tabulator-calcs-bottom.tabulator-row-odd').hide();
+        $('.tabulator-calcs-bottom.tabulator-row-even').hide();
+    }
+});
+//Danh sách văn bản của hồ sơ
+function getDataHoSoVBLuuTruCT(sttHoSoVBLuuTrupr_sd, loaiHoSopr_sd) {
+    if (loaiHoSopr_sd == '090') {
+        $("#btnThemMoiVB").css("display", "none");
+    } else {
+        $("#btnThemMoiVB").css("display", "block");
+    }
+    if (loaiHoSopr_sd == '010') { // Tờ trình đề nghị QTDAHT
+        $('#divBaoCaoQTDAHT').hide();
+        $('#divVanBan').hide();
+        $('#divToTrinh').show();
+        setTimeout(function () {
+            //GridToTrinh.setData(NTS.getAjax_v1('/View/quanly/SoHoav2/SoHoa_Nhap.aspx/GetDataHoSoVBLuuTruCT', { sttHoSoVBLuuTrupr_sd: sttHoSoVBLuuTrupr_sd, loaiHoSopr_sd: loaiHoSopr_sd }));
+            //GridToTrinh.redraw(true);
+        }, 150);
+        var ketqua = NTS.getAjax('json', '/View/quanLy/SoHoav2/SoHoa_Nhap.aspx/layThongTinToTrinhtheoID', {});
+        if (ketqua.length > 0) {
+            $('#txtSoToTrinh').value(ketqua[0].soToTrinh);
+            $('#txtNgayLapTT').value(ketqua[0].ngayLapTTrinh);
+            $('#txtNoiDungTrinhKy').value(ketqua[0].noiDungTrinhKy);
+            $('#txtCanCuPhapLyTT').value(ketqua[0].canCu);
+
+        } else {
+            $('#txtSoToTrinh').value("");
+            $('#txtNgayLapTT').value("");
+            $('#txtNoiDungTrinhKy').value("");
+            $('#txtCanCuPhapLyTT').value("");
+        }
+    }
+    else if (loaiHoSopr_sd == '020') { // Báo cáo QTDAHT
+        $('#divBaoCaoQTDAHT').show();
+        $('#divVanBan').hide();
+        $('#divToTrinh').hide();
+        setTimeout(function () {
+            Grid3.refresh();
+        }, 150);
+    }
+    else { // Văn bản
+        $('#divBaoCaoQTDAHT').hide();
+        $('#divVanBan').show();
+        $('#divToTrinh').hide();
+        setTimeout(function () {
+            $('#ctl00_ContentPlaceHolder1_hdfloaiHoSopr_sd').value(loaiHoSopr_sd);
+            $('#ctl00_ContentPlaceHolder1_hdf_sttHoSoVBLuuTrupr_sd').value(sttHoSoVBLuuTrupr_sd);
+            Grid1.refresh();
+        }, 150);
+    }
+}
+
+// Lưới báo cáo
+
+//Chọn hồ sơ 
+function LuuThongTinHoSo() {
+    if (table3.getSelectedRows().length == 0) {
+        NTS.canhbao('Vui lòng chọn văn bản!');
+        return false;
+    }
+    if ($('#hdfloaiHoSopr_sd2').value() == "") {
+        NTS.canhbao('Vui lòng chọn nhóm văn bản!');
+        return false;
+    }
+
+    for (var j = 0; j < table3.getSelectedData().length; j++) {
+        var arr = new Array();
+        arr[0] = $('#hfdsttHoSoVBLuuTrupr').value();
+        arr[1] = $('#hdfsttDuAnpr_sd').value();
+        arr[2] = table3.getSelectedData()[j].sttVBDApr;
+        arr[3] = $('#hdfloaiHoSopr_sd2').value();
+        arr[4] = $('#selLoaiVanBanSoHoa').value();
+        var data = NTS.getAjax_v1('/View/quanly/SoHoav2/SoHoa_Nhap.aspx/LuuThongTinCT', { data: arr });
+    }
+    NTS.thongbao("Tạo hồ sơ văn bản thành công!");
+    //LoadDuLieu_Grid1();
+    thongtinNhanh();
+    CapNhatSoLuongNhomSH($('#hdfloaiHoSopr_sd2').value(), $('#hfdsttHoSoVBLuuTrupr').value());
+    setTimeout(function () {
+        Grid1.refresh();
+    }, 150);
+    $('#ModalChonHoSo').modal("hide");
+    return false;
+}
+//Xem đính kèm văn bản khi chọn hồ sơ
+function XemVanBanDA_us(link) {
+    if (link == "null" || link == "") {
+        NTS.canhbao("Không có file đính kèm!");
+        return false;
+    } else {
+        if (link.split('*').length == 1) {
+            window.open(window.location.origin + link.replace('~', ''), '_blank', 'location=yes,height=600,width=800,scrollbars=yes,status=yes');
+        }
+        else {
+            var fileVB = '<ul class="list-group">';
+            var files = link.split('*');
+            for (var i = 0; i < files.length - 1; i++) {
+                fileVB += " <li class='list-group-item' style='cursor: pointer;color:#38B8E6' onclick='XemVanBanDA_us(`" + files[i] + "`)'><i class='fa fa-file-text-o' style='font-size:18px;font-weight:bold'></i>&nbsp;&nbsp;&nbsp;" + files[i].substring(files[i].lastIndexOf('/') + 1, files[i].length) + "</li>";
+            }
+            $('#showFileVB').html(fileVB + "</ul>");
+            $('#mdXemVanBan').modal('show');
+        }
+    }
+    return false;
+}
+function btnXoaGrid1(sttVanBanpr) {
+    if (!ntspermiss.xoa) {
+        NTS.canhbao("User bạn đang sử dụng không thể thực hiện thao tác xóa. Vui lòng kiểm tra lại.");
+        return false;
+    }
+    //var data = NTS.getAjax('json', '/View/QuanLy/SoHoav2/SoHoa_Nhap.aspx/KiemTraHoSoQT', { sttHoSoLuuTrupr: $('#hfdsttHoSoVBLuuTrupr').value() });
+    //if (data == "0") {
+    //    NTS.canhbao("Hồ sơ quyết toán đã được nộp, bạn không thể thực hiện thao tác!");
+    //    return false;
+    //}
+    var ID = sttVanBanpr;
+    bootbox.confirm({
+        message: NTS.CauThongBaoXoa(),
+        title: "Cảnh báo",
+        className: 'bb-alternate-modal', animate: false,
+        buttons: {
+
+            cancel: {
+                label: '<i class="fa fa-close"></i> Hủy bỏ',
+                className: "btn-danger btn-sm",
+            },
+            confirm: {
+
+                label: '<i class="fa fa-check"></i> Chấp nhận',
+                className: "btn-primary btn-sm",
+            }
+        },
+        callback: function (result) {
+            if (result) {
+                var resultXoa = NTS.getAjax('string', '/View/quanly/SoHoav2/SoHoa_Nhap.aspx/XoaHoSoLuuTruCT', { data: ID, loaiHoSopr_sd: $('#hdfloaiHoSopr_sd2').value() });
+                GridCayHoSo.setData(NTS.getAjax('json', "/View/QuanLy/SoHoav2/SoHoa_Nhap.aspx/GetAll", {}));
+                //$('.tabulator-data-tree-control').click();
+                getDataHoSoVBLuuTruCT($('#hfdsttHoSoVBLuuTrupr').val(), $('#hdfloaiHoSopr_sd2').value());
+                NTS.thongbao("Xóa dữ liệu thành công!");
+            }
+        }
+    });
+    return false;
+}
+function btnXemGrid1(data) {
+    $('#xemThongTinVanBan_us').modal("show");
+    var ketqua = NTS.getAjax('json', '/View/quanly/SoHoav2/SoHoa_Nhap.aspx/layThongTinVanBan', { data: data.split('_')[0], loaiHoSopr_sd: data.split('_')[1] });
+    if (ketqua.length > 0) {
+        if (data.split('_')[1] == "CTC") {
+            $('#SoHoSo_us').text((ketqua[0].soHoSo == null ? '' : ketqua[0].soHoSo));
+            $('#STT_us').text(ketqua[0].soThuTu == null ? '' : ketqua[0].soThuTu);
+            $('#ToSo_us').text(ketqua[0].toSo == null ? '' : ketqua[0].toSo);
+            $('#SoLuongTo_us').text(ketqua[0].soLuongTo == null ? '' : ketqua[0].soLuongTo);
+            $('#SoVanBan_us').text(ketqua[0].soChungTu == null ? '' : ketqua[0].soChungTu);
+            $('#NgayKy_us').text(ketqua[0].ngay == null ? '' : ketqua[0].ngay);
+            $('#NguoiKy_us').text(ketqua[0].tenNguoiKy == null ? '' : ketqua[0].tenNguoiKy);
+            $('#CQBanHanh_us').text(ketqua[0].tenToChuc == null ? '' : ketqua[0].tenToChuc);
+            $('#LoaiVanBan_us').text(ketqua[0].tenLoaiVBan == null ? '' : ketqua[0].tenLoaiVBan);
+            $('#CheDoSuDung_us').text(ketqua[0].tenCheDoSuDung == null ? '' : ketqua[0].tenCheDoSuDung);
+            $('#TrichYeu_us').text(ketqua[0].trichYeu == null ? '' : ketqua[0].noiDung);
+            if (ketqua[0].tenFile == null || ketqua[0].tenFile == "") {
+                $('#dsDinhKem_us').html("");
+            } else {
+                var fileVB = '';
+                var files = ketqua[0].tenFile.split('*');
+
+                for (var i = 0; i < files.length; i++) {
+                    var DuongDanFile = "";
+                    DuongDanFile = files[i].substring(files[i].lastIndexOf('/') + 1, files[i].length);
+                    fileVB += "<a onclick='XemVanBanDA_us(`" + files[i] + "`);return false;' href='#' >" + DuongDanFile + "</a><br>";
+                }
+                $('#dsDinhKem_us').html(fileVB);
+            }
+        } else {
+            $('#SoHoSo_us').text((ketqua[0].soHoSo == null ? '' : ketqua[0].soHoSo));
+            $('#STT_us').text(ketqua[0].soThuTu == null ? '' : ketqua[0].soThuTu);
+            $('#ToSo_us').text(ketqua[0].toSo == null ? '' : ketqua[0].toSo);
+            $('#SoLuongTo_us').text(ketqua[0].soLuongTo == null ? '' : ketqua[0].soLuongTo);
+            $('#SoVanBan_us').text(ketqua[0].soVanBan == null ? '' : ketqua[0].soVanBan);
+            $('#NgayKy_us').text(ketqua[0].ngay == null ? '' : ketqua[0].ngay);
+            $('#NguoiKy_us').text(ketqua[0].tenNguoiKy == null ? '' : ketqua[0].tenNguoiKy);
+            $('#CQBanHanh_us').text(ketqua[0].tenToChuc == null ? '' : ketqua[0].tenToChuc);
+            $('#LoaiVanBan_us').text(ketqua[0].tenLoaiVBan == null ? '' : ketqua[0].tenLoaiVBan);
+            $('#CheDoSuDung_us').text(ketqua[0].tenCheDoSuDung == null ? '' : ketqua[0].tenCheDoSuDung);
+            $('#TrichYeu_us').text(ketqua[0].trichYeu == null ? '' : ketqua[0].noiDung);
+            if (ketqua[0].tenFile == null || ketqua[0].tenFile == "") {
+                $('#dsDinhKem_us').html("");
+            } else {
+                var fileVB = '';
+                var files = ketqua[0].tenFile.split('*');
+                for (var i = 0; i < files.length; i++) {
+                    var DuongDanFile = "";
+                    DuongDanFile = files[i].substring(files[i].lastIndexOf('/') + 1, files[i].length);
+                    fileVB += "<a onclick='XemVanBanDA_us(`" + files[i] + "`);return false;' href='#' >" + DuongDanFile + "</a><br>";
+                }
+                $('#dsDinhKem_us').html(fileVB);
+            }
+        }
+        $('.truongDuLieu_us').html('');
+        var ketqua = NTS.getAjax('json', '/View/quanly/SoHoav2/SoHoa_Nhap.aspx/layThongTinVanBanTruongDuLieu', { data: data.split('_')[0] });
+        if (ketqua.length > 0) {
+            if (ketqua[0].truongDuLieuThem != "") {
+                var obj2 = JSON.parse(ketqua[0].truongDuLieuThem);
+                var dulieuTruongDueLieu = "";
+                for (var i = 0; i < obj2.length; i++) {
+                    dulieuTruongDueLieu += `<hr style="margin: 4px 0px">
+                        <div class="row">
+                            <div class="form-group">
+                                <div class="col-md-12 control-label no-padding-right "><label><b>${Object.keys(obj2[i])}:</b>&nbsp;</label>
+                                    <span>${Object.values(obj2[i])}</span></div>
+
+                            </div>
+                        </div>`;
+                }
+                $('.truongDuLieu_us').append(dulieuTruongDueLieu);
+            }
+
+        }
+    }
+    return false;
+}
+$(document).on('click', '#btnThemTruongDuLieu', function () {
+    dya.add({
+        "text": TruongDuLieuChuaXacDinh,
+        "name": '',
+        "value": '',
+    });
+});
+
+//Thêm mới, sửa văn bản
+function loadNguoiKy() {
+    NTS.loadDataCombo({
+        name: '#NguoiKy',
+        ajaxUrl: '/Services/WebService.asmx/GetNguoiKyVB',
+        ajaxParam: document.getElementById("CQBanHanh").value,
+        columns: 1,
+        indexValue: 1,
+        indexText: 1,
+    });
+}
+async function btnSuaGrid1(sttVanBanpr) {
+    if (!ntspermiss.sua) {
+        NTS.canhbao("User bạn đang sử dụng không thể thực hiện thao tác chỉnh sửa. Vui lòng kiểm tra lại.");
+        return false;
+    }
+    const image = document.getElementById('image');
+    if (cropper && typeof cropper === "object") {
+        cropper.destroy();
+        image.src = "";
+        cropper = null;
+    }
+    //var data = NTS.getAjax('json', '/View/QuanLy/SoHoav2/SoHoa_Nhap.aspx/KiemTraHoSoQT', { sttHoSoLuuTrupr: $('#hfdsttHoSoVBLuuTrupr').value() });
+    //if (data == "0") {
+    //    NTS.canhbao("Hồ sơ quyết toán đã được nộp, bạn không thể thực hiện thao tác!");
+    //    return false;
+    //}
+    $('#tieuDeModalThemMoiVanBan').text("Cập nhật văn bản");
+    $('#divFileDinhKem').attr("src", "");
+    NTS.loadDataCombo({
+        name: "#CQBanHanh",
+        ajaxUrl: '/Services/WebService.asmx/GetCoQuanBanHanh',
+        columns: 1,
+        indexValue: 0,
+        indexText: 1,
+    });
+    NTS.loadDataCombo({
+        name: '#LoaiVanBan',
+        ajaxUrl: '/View/quanly/SoHoa/LuuTruVanBan.aspx/GetSuaLoaiVanBan',
+        ajaxParam: $('#hdfloaiHoSopr_sd2').val(),
+        columns: 1,
+        indexValue: 0,
+        indexText: 1,
+    });
+    NTS.loadDataCombo_v1({
+        name: '#CheDoSuDung',
+        ajaxUrl: '/View/quanly/SoHoav2/SoHoa_Nhap.aspx/GetCheDoSuDung',
+        columns: 1,
+        indexValue: 0,
+        indexText: 1,
+    });
+    $('#txtDuongDanFile').val("");
+    $('#showFileVBDinhKem').html("");
+    $('#file').value("");
+    $('#hfdsttVanBanpr_sd').value(sttVanBanpr);
+    $('#dstoado').html('');
+    var ketqua = await NTS.getAjaxAsync('json', '/View/quanLy/SoHoav2/SoHoa_Nhap.aspx/layThongTinVanBantheoID', { data: sttVanBanpr });
+    if (ketqua.length > 0) {
+        $('#SoVanBanVB').value(ketqua[0].soVanBan);
+        $('#NgayKyVanBan').value(ketqua[0].ngay);
+        $('#ChucDanhVB').value(ketqua[0].chucDanhNguoiKy);
+        $('#LoaiVanBan').value(ketqua[0].maLoaiVBanpr_sd);
+        $('#CQBanHanh').value(ketqua[0].maToChucpr_phathanh);
+        $('#NguoiKy').value(ketqua[0].tenNguoiKy);
+        $('#GiaTriDuaAnVanBan').value(formatNumber(ketqua[0].giaTri_));
+        $('#NoiDungVanBan').value(ketqua[0].noiDung);
+        $('#GhiChuVanBan').value(ketqua[0].ghiChu);
+        $('#txtDuongDanFile').value(ketqua[0].tenFile);
+        $('#CheDoSuDung').value(ketqua[0].maCheDoSuDungpr_sd);
+        $('#SoThuTu').value(ketqua[0].soThuTu);
+        $('#ToSo').value(ketqua[0].toSo);
+        $('#SoLuongTo').value(ketqua[0].soLuongTo);
+        $('#TrichYeu').value(ketqua[0].trichYeu);
+
+        $('#ModalThemMoiVanBan').modal('show');
+        $('#divFileDinhKem').attr("src", "");
+        $('#bthLuimdVanBan').text("Đóng");
+        if (ketqua[0].truongDuLieuThem != "" && ketqua[0].truongDuLieuThem != "[]") {
+            var ArrData2 = [];
+            try {
+                json = JSON.parse(ketqua[0].truongDuLieuThem);
+            }
+            catch (e) { }
+            if (json && typeof json === 'object') {
+                for (let i = 0; i < json.length; i++) {
+                    if (ArrData2[Object.keys(json[i])] == undefined) {
+                        ArrData2[Object.keys(json[i])] = {
+                            "name": Object.keys(json[i]),
+                            "text": Object.keys(json[i]),
+                            "value": json[i][Object.keys(json[i])],
+                        };
+                    }
+                    else {
+                        ArrData2[Object.keys(json[i])].value += "\n" + json[i][Object.keys(json[i])];
+                    }
+                }
+
+            }
+
+            var tmp = "";
+            dya = new dyamicForm(id_grid, ArrData2, (data) => {
+
+                return `<div style="margin-top:2px" class="row form-group nhapdulieu" data-index="${data._index}">
+            <label class="col-md-2 col-form-label" data="truongdulieu_${data._index}">${data.text == '' ? TruongDuLieuChuaXacDinh : data.text}</label>
+            <div class="col-md-10">
+                <div class="input-group">
+                    <textarea class="form-control" name="${data.text}" id="truongdulieu_${data._index}">${data.value}</textarea>
+                    <span class="input-group-addon btn-danger btn-remove" style="padding: 6px; border-radius: 0px 3px 3px 0px!important; cursor: pointer; color: #FFFFFF;" data-index="${data._index}">
+                       <i class="fa fa-trash"></i>
+                    </span>
+                </div>
+            </div>
+        </div>`;
+
+            });
+            dya.render();
+
+            $(".nhapdulieu textarea").each((text) => {
+                TextAreaAutoHeight(text);
+            });
+        } else {
+            $('#kqnhandang').html('');
+        }
+
+        hideContextMenu();
+        $('#list-file-VBKhac').html('');
+        $('#txtDuongDanFileVBKhac').value('');
+        $('#list-file-VBKhac').html('');
+        AnHienXoaHetTepVBKhac();
+        var Path = ketqua[0].tenFileVBKhac;
+        $('#txtDuongDanFileVBKhac').value(Path);
+        if (Path != null && Path.length > 0) {
+            var linkVB = Path;
+            var arrFile = linkVB.split('*');
+            for (var p = 0; p < arrFile.length; p++) {
+                if (arrFile[p] != '') {
+                    if (arrFile[p].lastIndexOf('.') != -1) {
+                        // file có đuôi .*
+                        if (arrFile[p].substring(arrFile[p].lastIndexOf('.'), arrFile[p].length).toLocaleLowerCase() == ".png" ||
+                            arrFile[p].substring(arrFile[p].lastIndexOf('.'), arrFile[p].length).toLocaleLowerCase() == ".jpeg" ||
+                            arrFile[p].substring(arrFile[p].lastIndexOf('.'), arrFile[p].length).toLocaleLowerCase() == ".jpg") {
+                            $('#list-file-VBKhac').append(`<div class="frame-file">
+                                                    <div class="frame-top">
+                                                        <div class="frame-image" title="${arrFile[p].substring(arrFile[p].lastIndexOf('/') + 1, arrFile[p].length)}" style="background-image:url('${arrFile[p].replace('~', '')}')"></div>
+                                                    </div>
+                                                    <i class="fa fa-arrow-down download-file-attachments-VBKhac" data-url-file="${arrFile[p].replace('~', '')}"></i>
+                                                    <i class="fa fa-trash-o delete-file-attachments-VBKhac" data-url-file="${arrFile[p]}"></i>
+                                                </div>`);
+                        } else {
+                            $('#list-file-VBKhac').append(`<div class="frame-file">
+                                                    <div class="frame-top">
+                                                        <div class="frame-image" title="${arrFile[p].substring(arrFile[p].lastIndexOf('/') + 1, arrFile[p].length)}" style="background-image:url('/images/file.png')"></div>
+                                                    </div>
+                                                    <i class="fa fa-arrow-down download-file-attachments-VBKhac" data-url-file="${arrFile[p].replace('~', '')}"></i>
+                                                    <i class="fa fa-trash-o delete-file-attachments-VBKhac" data-url-file="${arrFile[p]}"></i>
+                                                </div>`);
+                        }
+                    }
+                    else {
+                        // file không đuôi
+                        $('#list-file-VBKhac').append(`<div class="frame-file">
+                                                    <div class="frame-top">
+                                                        <div class="frame-image" title="${arrFile[p].substring(arrFile[p].lastIndexOf('/') + 1, arrFile[p].length)}" style="background-image:url('/images/file.png')"></div>
+                                                    </div>
+                                                    <i class="fa fa-arrow-down download-file-attachments-VBKhac" data-url-file="${arrFile[p].replace('~', '')}"></i>
+                                                    <i class="fa fa-trash-o delete-file-attachments-VBKhac" data-url-file="${arrFile[p]}"></i>
+                                                </div>`);
+                    }
+                }
+            }
+        }
+        AnHienXoaHetTepVBKhac();
+        var _wizard = $('#fuelux-wizard-container').data('fu.wizard');
+        _wizard.currentStep = 1;
+        _wizard.setState();
+        ThaoTacVanban = "sua";
+
+        //OCR
+        if (ketqua[0].tenFile == null || ketqua[0].tenFile == '') {
+            $('#image').attr("src", "");
+        } else {
+            listFileUpload = ketqua[0].tenFile.split('~');
+            if (listFileUpload.length > 0 && listFileUpload[0] == "") {
+                listFileUpload.shift();
+            }
+            $('#txtDuongDanFile').value(listFileUpload[0]);
+            try {
+                ListImages = await NTS.getAjaxAsync('json', '/View/quanly/SoHoav2/SoHoa_Nhap.aspx/Pdf2Img', { image: listFileUpload[0] });
+                if (ListImages == null) {
+                    NTS.dongthongbao();
+                    ListImages = new Array();
+                }
+                if (ListImages.length > 0) {
+                    $('#SoLuongTrang').value(ListImages.length);
+                }
+                $('#selTrang').html('');
+                for (var i = 0; i < ListImages.length; i++) {
+                    $('#selTrang').append(`<option value="${i}">Trang ${i + 1}</option>`);
+                }
+            } catch (e0) {
+
+            }
+            $('#selTrang').select2({
+                width: "100%"
+            });
+            SelectTrang(0);
+            var danhSachVanBan = "";
+            var tenVanBan = $('#txtDuongDanFile').value().split('/')[$('#txtDuongDanFile').value().split('/').length - 1];
+            var kiemTraTinhTrang = await NTS.getAjaxAsync('json', '/View/quanly/SoHoav2/SoHoa_Nhap.aspx/KiemtraFileKySo', { data: $('#txtDuongDanFile').value().replace('~', '') });
+            if (kiemTraTinhTrang) {
+                // nếu đã ký
+                danhSachVanBan += `
+<div class="alert alert-success" role="alert" style="margin: 2px">
+    <button class="btn btn-sm btn-success" disabled="disabled"><i class="fa fa-check" aria-hidden="true"></i>&ensp;Đã ký số</button>
+    &ensp;
+    <span><a class="link" href="${$('#txtDuongDanFile').value().replaceAll('*', '')}?v=${Math.random()}" target="_blank">${tenVanBan.replaceAll('*', '')}</a></span>
+</div>
+`;
+            } else {
+                // chưa ký
+                danhSachVanBan += `
+<div id="${i + `_fileKySo`}" class="alert alert-warning" role="alert" style="margin: 2px;transition-duration: 300ms;">
+    <button class="btn btn-sm btn-warning kySoVanBan" data="${$('#txtDuongDanFile').value().replaceAll('*', '')}" data-id="${i + `_fileKySo`}"><i class="fa fa-pencil" aria-hidden="true"></i>&ensp;Ký số</button>
+    &ensp;
+    <span><a id="${i + `_linkKySo`}" class="link" href="${$('#txtDuongDanFile').value().replaceAll('*', '')}?v=${Math.random()}" target="_blank">${tenVanBan.replaceAll('*', '')}</a></span>
+</div>
+`;
+            }
+            $('#divDanhSachVanBanKySo').html(danhSachVanBan);
+            //cropper = new Cropper(image, {
+            //    autoCrop: false,
+            //    highlight: true,
+            //    zoomable: false
+            //});
+            //const image = document.getElementById('image');
+            //image.src = srcImage;
+            //cropper = new Cropper(image, {
+            //    autoCrop: false,
+            //    highlight: true,
+            //});
+            //cropper.clear();
+            //image.addEventListener('cropend', showContextMenu);
+            //image.addEventListener('cropstart', hideContextMenu);
+            //var listFiles = [];
+            //listFileUpload.forEach(function (item) {
+            //    listFiles.push(item.split('/')[item.split('/').length - 1]);
+            //});
+            //$('#input-file').ace_file_input('show_file_list', listFiles);
+        }
+
+    }
+    return false;
+}
+$('#btnThemMoiVB').on('click', function () {
+    if (!ntspermiss.them) {
+        NTS.canhbao("User bạn đang sử dụng không thể thực hiện thao tác thêm. Vui lòng kiểm tra lại.");
+        return false;
+    }
+    //var data = NTS.getAjax('json', '/View/QuanLy/SoHoav2/SoHoa_Nhap.aspx/KiemTraHoSoQT', { sttHoSoLuuTrupr: $('#hfdsttHoSoVBLuuTrupr').value() });
+    //if (data == "0") {
+    //    NTS.canhbao("Hồ sơ quyết toán đã được nộp, bạn không thể thực hiện thao tác!");
+    //    return false;
+    //}
+    NTS.loadDataCombo({
+        name: "#CQBanHanh",
+        ajaxUrl: '/Services/WebService.asmx/GetCoQuanBanHanh',
+        columns: 1,
+        indexValue: 0,
+        indexText: 1,
+    });
+    NTS.loadDataCombo({
+        name: '#LoaiVanBan',
+        ajaxUrl: '/View/quanly/SoHoav2/SoHoa_Nhap.aspx/GetLoaiVanBan',
+        ajaxParam: $('#hdfloaiHoSopr_sd2').value(),
+        columns: 1,
+        indexValue: 0,
+        indexText: 1,
+    });
+    NTS.loadDataCombo_v1({
+        name: '#CheDoSuDung',
+        ajaxUrl: '/View/quanly/SoHoav2/SoHoa_Nhap.aspx/GetCheDoSuDung',
+        columns: 1,
+        indexValue: 0,
+        indexText: 1,
+    });
+    /*$('#SuaVanBan').attr("disabled", false);*/
+    //$('#ModalSuaVanBan').modal('show');
+    $('#tieuDeModalThemMoiVanBan').text("Thêm mới văn bản");
+    $('#SoVanBanVB').value("");
+    $('#NgayKyVanBan').value("");
+    $('#ChucDanhVB').value("");
+    $('#LoaiVanBan').value("");
+    $('#CQBanHanh').value("");
+    $('#NguoiKy').value("");
+    $('#GiaTriDuaAnVanBan').value("");
+    $('#NoiDungVanBan').value("");
+    $('#GhiChuVanBan').value("");
+    $('#showFileVBDinhKem').html("");
+    /* $('.fileVB_us_VB').value("");*/
+    //$('#hfDuongDan').value("");
+    $('#hfdsttVanBanpr_sd').value("");
+    $('#CheDoSuDung').value("");
+    $('#SoThuTu').value("");
+    $('#ToSo').value("");
+    $('#SoLuongTo').value("");
+    $('#TrichYeu').value("");
+    $('#file').value("");
+    $('#ModalThemMoiVanBan').modal('show');
+    $('#bthLuimdVanBan').text("Đóng");
+    $('#txtDuongDanFile').value("");
+    $('#hdfNguoiKy_ocr').value("");
+    $('#hdfCQBanHanh_ocr').value("");
+
+    $('#selTrang').html('');
+    $('#dstoado').html('');
+    hideContextMenu();
+    $('#kqnhandang').html('');
+
+    const image = document.getElementById('image');
+    if (cropper && typeof cropper === "object") {
+        cropper.destroy();
+        image.src = "";
+        cropper = null;
+    }
+    //cropper = new Cropper(image, {
+    //    autoCrop: false,
+    //    highlight: true,
+    //});
+    //cropper.clear();
+    //image.addEventListener('cropend', showContextMenu);
+    //image.addEventListener('cropstart', hideContextMenu);
+    var _wizard = $('#fuelux-wizard-container').data('fu.wizard');
+    _wizard.currentStep = 1;
+    _wizard.setState();
+    ThaoTacVanban = "them";
+    $('#txtDuongDanFileVBKhac').value('');
+    $('#list-file-VBKhac').html('');
+    AnHienXoaHetTepVBKhac();
+    return false;
+});
+
+//Đính kèm văn bản
+$('#id-input-file-3_VB').ace_file_input({
+    style: 'well',
+    btn_choose: 'Thả tệp vào đây hoặc nhấp để chọn',
+    btn_change: null,
+    no_icon: 'ace-icon fa fa-cloud-upload',
+    droppable: true,
+    thumbnail: 'small'//large | fit
+
+    ,
+    preview_error: function (filename, error_code) {
+
+    }
+
+}).on('change', function () {
+    var param = new Array();
+    param = $(this).data('ace_input_files');
+    console.log(param);
+    var duongDanDinhKem = "";
+    for (var i = 0; i < param.length; i++) {
+        duongDanDinhKem += param[i].name + "*";
+    }
+    console.log(duongDanDinhKem);
+});
+$('#id-file-format').removeAttr('checked').on('change', function () {
+
+
+});
+
+$('.fileVB_us_VB').change(function () {
+
+    if ($('#hfdsttVanBanpr_sd') == "") {
+        NTS.canhbao("Vui lòng lưu lại thông tin văn bản");
+        return false;
+    }
+    var duongDanVanBan = "";
+    var loiUpload = false;
+    var fileUpload = $('.fileVB_us_VB').get(0);
+    var files = fileUpload.files;
+    var test = new FormData();
+    for (var i = 0; i < files.length; i++) {
+        test.append(files[i].name, files[i]);
+    }
+    if (files.length > 0) {
+        $.ajax({
+            url: "/Services/UpLoadBBLV.ashx?loaiVB=VB&LoaiVanBan=" + $('#LoaiVanBan').value() + "&maDuAn=" + $('#hdfsttDuAnpr_sd').value() + "&SoVanBan=" + $('#SoVanBanVB').value() + "&NhomVanBan=" + $('#hdfloaiHoSopr_sd2').value() + '&type=',
+            type: "POST",
+            contentType: false,
+            processData: false,
+            async: false,
+            data: test,
+            success: function (data) {
+                data = data.split('|');
+                if (data[0] == "1") {
+                    duongDanVanBan = data[1];
+
+                }
+                else if (data[0] == "0") {
+                    result = "";
+                    loiUpload = true;
+                    NTS.thongbaoloi(data[1]);
+                }
+                else if (data[0] == "-1") {
+                    result = "";
+                    loiUpload = true;
+                    NTS.thongbaoloi(data[1]);
+                }
+            },
+            error: function (err) {
+                loiUpload = true;
+                NTS.thongbaoloi(err);
+            }
+        });
+    } else {
+        if (!tempThem) {
+            duongDanVanBan = tepVB != null ? tepVB : "";
+        }
+    }
+
+    if (loiUpload) {
+        return false;
+    }
+
+    NTS.dongthongbao();
+    $('#txtDuongDanFile').value(duongDanVanBan);
+    //$('#hfDuongDan').value(duongDanVanBan);
+    $('#showFileVB2').html("");
+
+    var fileVB = '<ul class="list-group">';
+    var files = duongDanVanBan.split('*');
+
+    for (var i = 0; i < files.length - 1; i++) {
+        var DuongDanFile = "";
+        if (files[i].substring(files[i].lastIndexOf('/') + 1, files[i].length).length > 35) {
+            DuongDanFile = files[i].substring(files[i].lastIndexOf('/') + 1, files[i].length).substr(0, 35) + '...';
+        } else {
+            DuongDanFile = files[i].substring(files[i].lastIndexOf('/') + 1, files[i].length);
+        }
+        fileVB += " <li class='list-group-item frame-file' style='cursor: pointer;color:#38B8E6;display: flex;' ><i class='fa fa-file-text-o' style='font-size:18px;font-weight:bold'></i>&nbsp;&nbsp;&nbsp;" + DuongDanFile + "<i class='fa fa-eye view-file-attachments'  onclick='XemVanBanDA_us(`" + files[i] + "`);return false;' ></i><i class='fa fa-trash-o delete-file-attachments' data-url-file='" + files[i] + "'></i></li>";
+    }
+    $('#showFileVB2').html(fileVB + "</ul>");
+    $('.remove').click();
+    var data = NTS.getAjax_v1('/View/quanly/SoHoa/LuuTruVanBan.aspx/LuuThongTinVanBan', { TenFile: $('#txtDuongDanFile').value(), sttVanBanpr_sd: $('#hfdsttVanBanpr_sd').value(), loaiHoSopr_sd: $('#hdfloaiHoSopr_sd2').value() });
+    NTS.thongbao("Lưu đính kèm thành công");
+});
+$(document).on('click', '.delete-file-attachments', function () {
+    var duongDan = $(this);
+    if (ThaoTacVanban == "them") {
+        bootbox.confirm({
+            title: 'Cảnh báo',
+            message: NTS.CauThongBaoXoa,
+            className: 'bb-alternate-modal',
+            buttons: {
+                cancel: {
+                    label: '<i class="fa fa-close"></i> Hủy bỏ',
+                    className: "btn-danger btn-sm",
+                },
+                confirm: {
+                    label: '<i class="fa fa-check"></i> Chấp nhận',
+                    className: "btn-primary btn-sm",
+                }
+            },
+            callback: function (result) {
+                if (result) {
+                    duongDan.parent('li').remove();
+                }
+            }
+        });
+
+    }
+    if (ThaoTacVanban == "sua") {
+        bootbox.confirm({
+            title: 'Cảnh báo',
+            message: NTS.CauThongBaoXoa,
+            className: 'bb-alternate-modal',
+            buttons: {
+                cancel: {
+                    label: '<i class="fa fa-close"></i> Hủy bỏ',
+                    className: "btn-danger btn-sm",
+                },
+                confirm: {
+                    label: '<i class="fa fa-check"></i> Chấp nhận',
+                    className: "btn-primary btn-sm",
+                }
+            },
+            callback: function (result) {
+                if (result) {
+                    var result = NTS.getAjax('json', '/View/quanly/SoHoa/LuuTruVanBan.aspx/XoaDinhKem', { sttDuAnpr: $('#hfdsttVanBanpr_sd').value(), duongDan: duongDan.attr('data-url-file').replaceAll('`', '') });
+                    if (result.split('_')[0] == "1") {
+
+                        NTS.thongbao(result.split('_')[1]);
+                        var ketqua = NTS.getAjax('json', '/View/QuanLy/VanBanBuocKetThuc.aspx/layThongTinVanBan', { data: $('#hfdsttVanBanpr_sd').value() });
+                        if (ketqua.length > 0) {
+
+                            var fileVB = '<ul class="list-group">';
+                            var files = ketqua[0].tenFile.split('*');
+
+                            for (var i = 0; i < files.length - 1; i++) {
+                                var DuongDanFile = "";
+                                if (files[i].substring(files[i].lastIndexOf('/') + 1, files[i].length).length > 35) {
+                                    DuongDanFile = files[i].substring(files[i].lastIndexOf('/') + 1, files[i].length).substr(0, 35) + '...';
+                                } else {
+                                    DuongDanFile = files[i].substring(files[i].lastIndexOf('/') + 1, files[i].length);
+                                }
+                                fileVB += " <li class='list-group-item frame-file' style='cursor: pointer;color:#38B8E6;display: flex;' onclick='XemVanBanDA_us(`" + files[i] + "`)'><i class='fa fa-file-text-o' style='font-size:18px;font-weight:bold'></i>&nbsp;&nbsp;&nbsp;" + DuongDanFile + "<i class='fa fa-trash-o delete-file-attachments' data-url-file='" + files[i] + "'></i></li>";
+                            }
+                            $('#showFileVB2').html(fileVB + "</ul>");
+                        }
+                    }
+                    else {
+                        NTS.thongbaoloi('Xóa thất bại');
+                    }
+                }
+            }
+        });
+    }
+
+    return false;
+});
+
+//Đính kèm số hóa
+$(document).on('click', '#btnChonTepVB', function () {
+    if ($('#LoaiVanBan').value() == "") {
+        NTS.canhbao("Loại văn bản không được bỏ trống!");
+        return false;
+    }
+    $('#file').click();
+});
+$('#file').change(function () {
+
+    var fileVB = "<b>Tệp đã chọn:</b> <br>";
+    var fileUpload = $('#file').get(0);
+    var files = fileUpload.files;
+    var length = files.length;
+    if (length != 0) {
+        var test = new FormData();
+        for (var i = 0; i < files.length; i++) {
+            test.append(files[i].name, files[i]);
+            fileVB += "" + files[i].name + "<br>";
+        }
+        $('#showFileVBDinhKem').html(fileVB);
+    } else {
+        $('#showFileVBDinhKem').html("");
+    }
+    //Đính kèm tệp vào thư mục tạm
+    $("#txtDuongDanFile").val("");
+    $('#bthLuimdVanBan').text("Quay lại");
+    if ($('#file').value() != '') {
+        var loai = "0";
+        var duongDanVanBan = "";
+        var loiUpload = false;
+        var fileUpload = $('#file').get(0);
+        var files = fileUpload.files;
+        var test = new FormData();
+        for (var i = 0; i < files.length; i++) {
+            test.append(files[i].name, files[i]);
+        }
+        if (files.length > 0) {
+            $.ajax({
+                url: "/Services/UpLoadBBLV.ashx?loaiVB=VB&LoaiVanBan=" + $('#LoaiVanBan').value() + "&maDuAn=" + $('#hdfsttDuAnpr_sd').value() + "&SoVanBan=" + $('#SoVanBanVB').value() + "&NhomVanBan=" + $('#hdfloaiHoSopr_sd2').value() + "&loai=" + loai + '&type=',
+                type: "POST",
+                contentType: false,
+                processData: false,
+                async: false,
+                data: test,
+                success: function (data) {
+                    data = data.split('|');
+                    if (data[0] == "1") {
+                        duongDanVanBan = data[1];
+                        listFileUpload = duongDanVanBan.replaceAll("*", "").split('~');
+                        if (listFileUpload.length > 0 && listFileUpload[0] == "") {
+                            listFileUpload.shift();
+                        }
+                        try {
+                            ListImages = NTS.getAjax('json', '/View/quanly/SoHoav2/SoHoa_Nhap.aspx/Pdf2Img', { image: listFileUpload[0] });
+                            $('#selTrang').html('');
+                            for (var i = 0; i < ListImages.length; i++) {
+                                $('#selTrang').append(`<option value="${i}">Trang ${i + 1}</option>`);
+                            }
+                        } catch (e1) {
+
+                        }
+                        $('#selTrang').select2({
+                            width: "100%"
+                        });
+                        SelectTrang(0);
+                    }
+                    else if (data[0] == "0") {
+                        result = "";
+                        loiUpload = true;
+                        NTS.thongbaoloi(data[1]);
+                    }
+                    else if (data[0] == "-1") {
+                        result = "";
+                        loiUpload = true;
+                        NTS.thongbaoloi(data[1]);
+                    }
+                },
+                error: function (err) {
+                    loiUpload = true;
+                    NTS.thongbaoloi(err);
+                }
+            });
+        }
+
+        if (loiUpload) {
+            return false;
+        }
+        NTS.dongthongbao();
+        $('#txtDuongDanFile').val(duongDanVanBan);
+        $('#dstoado').html("");
+        listFileUpload = duongDanVanBan.replaceAll("*", "").split('~');
+        if (listFileUpload.length > 0 && listFileUpload[0] == "") {
+            listFileUpload.shift();
+        }
+        try {
+            ListImages = NTS.getAjax('json', '/View/quanly/SoHoav2/SoHoa_Nhap.aspx/Pdf2Img', { image: listFileUpload[0] });
+            //if (ListImages.length > 0) {
+            //    $('#SoLuongTrang').value(ListImages.length);
+            //}
+        } catch (e2) {
+
+        }
+    }
+    if (ThaoTacVanban == "them") {
+        if ($('#txtDuongDanFile').value() != "") {
+            $('#divFileDinhKem').attr("src", $('#txtDuongDanFile').value().replaceAll("*", "").replaceAll("~", ""));
+        } else {
+            $('#divFileDinhKem').attr("src", "");
+        }
+    }
+    if (ThaoTacVanban == "sua") {
+        if ($('#txtDuongDanFile').value() == "") {
+            $('#divFileDinhKem').attr("src", $('#txtDuongDanFile').value().replaceAll("*", "").replaceAll("~", ""));
+        } else {
+            $('#divFileDinhKem').attr("src", $('#txtDuongDanFile').value().replaceAll("*", "").replaceAll("~", ""));
+        }
+    }
+})
+$(document).on('click', '#SuaVanBan', function () {
+    luuVanBan();
+});
+function luuVanBan() {
+
+    NTS.dongthongbao();
+    var param = new Array();
+    param[0] = $('#hfdsttVanBanpr_sd').value();
+    param[1] = $('#SoVanBanVB').value();
+    param[2] = $('#NgayKyVanBan').value();
+    param[3] = $('#CQBanHanh').value();
+    param[4] = $('#NguoiKy').value();
+    param[5] = $('#ChucDanhVB').value();
+    param[6] = $('#LoaiVanBan').value();
+    param[7] = $('#NoiDungVanBan').value();
+    param[8] = $('#GiaTriDuaAnVanBan').value();
+    param[9] = $('#GhiChuVanBan').value();
+    param[10] = $('#hfdsttHoSoVBLuuTrupr').value();
+    param[11] = $('#hdfsttDuAnpr_sd').value();
+    param[13] = $('#CheDoSuDung').value();
+    param[14] = $('#SoThuTu').value();
+    param[15] = $('#ToSo').value();
+    param[16] = $('#SoLuongTo').value();
+    param[17] = $('#TrichYeu').value();
+
+    if (param[11] == "") {
+        NTS.canhbao("Vui lòng chọn dự án!");
+        return false;
+    } if (param[6] == "") {
+        NTS.canhbao("Loại văn bản không được bỏ trống!");
+        return false;
+    }
+
+    if (ThaoTacVanban == "sua") {
+        var listDuongDan = "";
+        $('.delete-file-attachments').each(function (e) {
+            listDuongDan += $(this).attr('data-url-file') + "*";
+        });
+        param[12] = listDuongDan;
+        var ketqua = NTS.getAjax('json', '/View/quanly/SoHoav2/SoHoa_Nhap.aspx/suaVanBan', { data: param });
+        if (ketqua.split('_')[0] != "1") {
+            return false;
+        }
+        else {
+            NTS.thongbao(ketqua.split('_')[1]);
+            $('#SuaVanBan').attr("disabled", false);
+            getDataHoSoVBLuuTruCT($('#hfdsttHoSoVBLuuTrupr').value(), $('#hdfloaiHoSopr_sd2').value());
+        }
+    } else if (ThaoTacVanban == "them") {
+        var listDuongDan = "";
+        $('.delete-file-attachments').each(function (e) {
+            listDuongDan += $(this).attr('data-url-file') + "*";
+        });
+        param[12] = listDuongDan;
+        var ketqua = NTS.getAjax('json', '/View/quanly/SoHoav2/SoHoa_Nhap.aspx/themVanBan', { data: param });
+
+        NTS.thongbao(ketqua.split('_')[1]);
+        $('#hfdsttVanBanpr_sd').value(ketqua.split('_')[2]);
+        $('#SuaVanBan').attr("disabled", true);
+        getDataHoSoVBLuuTruCT($('#hfdsttHoSoVBLuuTrupr').value(), $('#hdfloaiHoSopr_sd2').value());
+
+    }
+
+}
+var flag = true;
+var khoaChinh;
+function CQBanHanhAddNew() {
+    $('#Modal_ToChuc_VBBKT').find('input,textarea').value("");
+    $('#Modal_ToChuc_VBBKT').modal("show");
+    var data = NTS.getAjax('json', '/View/quanly/SoHoav2/SoHoa_Nhap.aspx/layMaHD', {});
+    $('#txtmaToChucpr_VBBKT').value(data);
+    var CQBH = NTS.getAjax('string', '/View/quanly/SoHoav2/SoHoa_Nhap.aspx/GetIDTheoTen', { Ten: $('#hdfCQBanHanh_ocr').value(), Loai: "CQBH" });
+    if (CQBH.replaceAll('"', '') != "") {
+        $('#TenToChuc_VBBKT').value("");
+    } else {
+        $('#TenToChuc_VBBKT').value($('#hdfCQBanHanh_ocr').value());
+    }
+
+}
+
+function NguoiKyAddNew() {
+    $('#Modal_CaNhan_VBBKT').find('input,textarea').value("");
+    NTS.loadDataCombo({
+        name: "#maPhongBanpr_sd_VBBKT",
+        ajaxUrl: '/Services/WebService.asmx/layCQBanHanh',
+        ajaxParam: '',
+        indexValue: 0,
+        indexText: 1,
+        textChange: "text"
+    });
+    $('#Modal_CaNhan_VBBKT').modal("show");
+    var data = NTS.getAjax('json', '/View/quanly/SoHoav2/SoHoa_Nhap.aspx/layMaCN', {});
+    $('#txtMaCaNhan_VBBKT').value(data);
+    var NgK = NTS.getAjax('string', '/View/quanly/SoHoav2/SoHoa_Nhap.aspx/GetNguoiKyIDTheoTen', { Ten: $('#hdfNguoiKy_ocr').value(), Loai: "NgK" });
+    if (NgK.replaceAll('"', '') != "") {
+        $('#txtTenCaNhan_VBBKT').value("");
+    } else {
+        $('#txtTenCaNhan_VBBKT').value($('#hdfNguoiKy_ocr').value());
+    }
+    $('#maPhongBanpr_sd_VBBKT').value($('#CQBanHanh').value())
+
+}
+function LuuThongTinCaNhan_VBBKT() {
+    var param = new Array();
+    param[0] = $('#txtMaCaNhan_VBBKT').value();
+    param[1] = $('#txtTenCaNhan_VBBKT').value();
+    param[2] = false;
+    param[3] = $('#maPhongBanpr_sd_VBBKT').value();
+    param[4] = $('#cboGioiTinh_VBBKT').value();
+    param[5] = $('#txtNgaySinh_VBBKT').value();
+    param[6] = $('#txtDiaChiThuongTru_VBBKT').value();
+    param[7] = $('#txtCMND_VBBKT').value();
+    param[8] = $('#txtNgayCap_VBBKT').value();
+    param[9] = $('#txtNoiCap_VBBKT').value();
+    param[10] = $('#chucVu_VBBKT').value();
+    param[11] = $('#soDienThoai_VBBKT').value();
+    if ($("#txtMaCaNhan_VBBKT").isempty("Mã cá nhân không được bỏ trống!")) return false;
+    if ($("#txtTenCaNhan_VBBKT").isempty("Tên cá nhân không được bỏ trống!")) return false;
+    if ($("#maPhongBanpr_sd_VBBKT").isempty("Bạn chưa chọn tổ chức!")) return false;
+
+    if ($('#txtNgaySinh_VBBKT').value() != "")
+        if ($("#txtNgaySinh_VBBKT").isdate("Ngày sinh phải có 10 ký tự dạng dd/MM/yyyy!")) return false;
+
+    if ($('#txtNgayCap_VBBKT').value() != "")
+        if ($("#txtNgayCap_VBBKT").isdate("Ngày sinh phải có 10 ký tự dạng dd/MM/yyyy!")) return false;
+
+    var data = NTS.getAjax_v1('/View/danhmuc/dmcanhan.aspx/LuuThongTin', { data: param, ThaoTacThem: true });
+    if (!data.Err) {
+        $('#Modal_CaNhan_VBBKT').modal('hide');
+        NTS.loadDataCombo({
+            name: '#NguoiKy',
+            ajaxUrl: '/Services/WebService.asmx/GetNguoiKyVB',
+            ajaxParam: document.getElementById("CQBanHanh").value,
+            columns: 1,
+            indexValue: 1,
+            indexText: 1,
+        });
+        $('#NguoiKy').value($('#txtTenCaNhan_VBBKT').value());
+        NTS.thongbao('Thêm mới thành công');
+        return 1;
+    }
+    return 0;
+}
+$(function () {
+    NTS.loadDataCombo_v1({
+        name: "#NhomTC_VBBKT",
+        ajaxUrl: '/View/danhmuc/dmToChuc.aspx/loadNhomToChuc',
+        columns: 1,
+        indexValue: 0,
+        indexText: 1,
+    });
+    NTS.loadDataCombo_v1({
+        name: "#cboGioiTinh_VBBKT",
+        ajaxUrl: '/View/danhmuc/dmcanhan.aspx/loadGioiTinh',
+        columns: 1,
+        indexValue: 0,
+        indexText: 0,
+    });
+    NTS.loadDataCombo({
+        name: "#maPhongBanpr_sd_VBBKT",
+        ajaxUrl: '/Services/WebService.asmx/layCQBanHanh',
+        ajaxParam: '',
+        indexValue: 0,
+        indexText: 1,
+        textChange: "text"
+    });
+});
+function LuuVaDongToChuc_VBBKT() {
+    var rtn = false;
+    var param = new Array();
+    param[0] = $('#txtmaToChucpr_VBBKT').value();
+    param[1] = $('#TenToChuc_VBBKT').value();
+    param[2] = $('#NhomTC_VBBKT').value();
+    param[3] = $('#DiaChi_VBBKT').value();
+    param[4] = $('#MaSoThue_VBBKT').value();
+    param[5] = $('#DienThoai_VBBKT').value();
+    param[6] = $('#Fax_VBBKT').value();
+    param[7] = $('#Email_VBBKT').value();
+    param[8] = $('#NguoiDaiDien_VBBKT').value();
+    param[9] = $('#ChucVuDD_VBBKT').value();
+    param[10] = $('#NguoiLienHe_VBBKT').value();
+    param[11] = $('#ChucVuLH_VBBKT').value();
+    param[12] = '';
+    param[13] = false;
+    param[14] = '';
+    param[15] = '';
+    param[16] = '';
+    param[17] = '';
+    param[18] = '';
+    param[19] = false;
+    param[20] = '';
+    param[21] = "";
+    param[22] = "";
+    param[23] = "";
+    param[24] = "";
+    param[25] = "";
+    param[26] = "";
+    param[27] = false;
+    param[28] = "";
+    param[29] = "";
+    if ($("#txtmaToChucpr_VBBKT").isempty("Mã khách hàng, nhà cung cấp không được bỏ trống!")) {
+        $("#txtmaToChucpr_VBBKT").focus();
+        rtn = false;
+        return rtn;
+    }
+    if ($("#TenToChuc_VBBKT").isempty("Tên khách hàng, nhà cung cấp không được bỏ trống!")) {
+        $("#TenToChuc_VBBKT").focus();
+        rtn = false;
+        return rtn;
+    }
+    if ($("#NhomTC_VBBKT").isempty("Bạn chưa chọn thuộc nhóm!")) {
+        $("#NhomTC_VBBKT").focus();
+        rtn = false;
+        return rtn;
+    }
+    var data = NTS.getAjax_v1('/View/danhmuc/dmtochuc.aspx/LuuThongTin', { data: param, ThaoTacThem: true });
+    if (!data.Err) {
+        flag = false;
+        rtn = true;
+        $('#Modal_ToChuc_VBBKT').modal('hide');
+        NTS.loadDataCombo({
+            name: "#CQBanHanh",
+            ajaxUrl: '/Services/WebService.asmx/GetCoQuanBanHanh',
+            columns: 1,
+            indexValue: 0,
+            indexText: 1,
+        });
+        $('#CQBanHanh').value($('#txtmaToChucpr_VBBKT').value());
+    } else {
+        rtn = false;
+    }
+
+    return rtn;
+}
+function Grid1OnClientDblClick(index) {
+    var data = Grid1.Rows[index].Cells;
+
+    if (!ntspermiss.sua) {
+        NTS.canhbao("User bạn đang sử dụng không thể thực hiện thao tác chỉnh sửa. Vui lòng kiểm tra lại.");
+        return false;
+    }
+    //var data = NTS.getAjax('json', '/View/QuanLy/SoHoav2/SoHoa_Nhap.aspx/KiemTraHoSoQT', { sttHoSoLuuTrupr: $('#hfdsttHoSoVBLuuTrupr').value() });
+    //if (data == "0") {
+    //    NTS.canhbao("Hồ sơ quyết toán đã được nộp, bạn không thể thực hiện thao tác!");
+    //    return false;
+    //}
+    $('#dstoado').html('');
+    $('#hdfNguoiKy_ocr').value("");
+    $('#hdfCQBanHanh_ocr').value("");
+    $('#tieuDeModalThemMoiVanBan').text("Cập nhật văn bản");
+    $('#hdfNguoiKy_ocr').value("");
+    $('#hdfCQBanHanh_ocr').value("");
+    $('#divFileDinhKem').attr("src", "");
+    NTS.loadDataCombo({
+        name: "#CQBanHanh",
+        ajaxUrl: '/Services/WebService.asmx/GetCoQuanBanHanh',
+        columns: 1,
+        indexValue: 0,
+        indexText: 1,
+    });
+    NTS.loadDataCombo({
+        name: '#LoaiVanBan',
+        ajaxUrl: '/View/quanly/SoHoa/LuuTruVanBan.aspx/GetSuaLoaiVanBan',
+        ajaxParam: $('#hdfloaiHoSopr_sd2').val(),
+        columns: 1,
+        indexValue: 0,
+        indexText: 1,
+    });
+    NTS.loadDataCombo_v1({
+        name: '#CheDoSuDung',
+        ajaxUrl: '/View/quanly/SoHoav2/SoHoa_Nhap.aspx/GetCheDoSuDung',
+        columns: 1,
+        indexValue: 0,
+        indexText: 1,
+    });
+    $('#showFileVBDinhKem').html("");
+    $('#file').value("");
+    $('#hfdsttVanBanpr_sd').value(data["sttVBDApr_sd"].Value);
+    var ketqua = NTS.getAjax('json', '/View/quanLy/SoHoav2/SoHoa_Nhap.aspx/layThongTinVanBantheoID', { data: data["sttVBDApr_sd"].Value });
+    if (ketqua.length > 0) {
+        $('#SoVanBanVB').value(ketqua[0].soVanBan);
+        $('#NgayKyVanBan').value(ketqua[0].ngay);
+        $('#ChucDanhVB').value(ketqua[0].chucDanhNguoiKy);
+        $('#LoaiVanBan').value(ketqua[0].maLoaiVBanpr_sd);
+        $('#CQBanHanh').value(ketqua[0].maToChucpr_phathanh);
+        $('#NguoiKy').value(ketqua[0].tenNguoiKy);
+        $('#GiaTriDuaAnVanBan').value(formatNumber(ketqua[0].giaTri_));
+        $('#NoiDungVanBan').value(ketqua[0].noiDung);
+        $('#GhiChuVanBan').value(ketqua[0].ghiChu);
+        $('#txtDuongDanFile').value(ketqua[0].tenFile);
+        $('#CheDoSuDung').value(ketqua[0].maCheDoSuDungpr_sd);
+        $('#SoThuTu').value(ketqua[0].soThuTu);
+        $('#ToSo').value(ketqua[0].toSo);
+        $('#SoLuongTo').value(ketqua[0].soLuongTo);
+        $('#TrichYeu').value(ketqua[0].trichYeu);
+
+        $('#ModalThemMoiVanBan').modal('show');
+        $('#divFileDinhKem').attr("src", "");
+        $('#bthLuimdVanBan').text("Đóng");
+        var _wizard = $('#fuelux-wizard-container').data('fu.wizard');
+        _wizard.currentStep = 1;
+        _wizard.setState();
+        ThaoTacVanban = "sua";
+    }
+    return false;
+    //btnSuaClick();
+}
+// Them moi nhom van ban
+function btnThemMoiNhomVanBan(data) {
+    $('#mdThemMoiNhomVanBan').modal('show');
+    $('#tieuDeModalThemMoiVanBan').text("Thêm mới nhóm văn bản");
+    NTS.loadDataCombo({
+        name: '#selDonViTinh',
+        ajaxUrl: '/View/quanly/SoHoav2/SoHoa_Nhap.aspx/GetdonviTinh',
+        columns: 1,
+        indexValue: 0,
+        indexText: 0,
+    });
+    $('#hdfsttHoSoQTpr').val($(this).attr('data2'));
+    $('#tenHoSoQT').value("");
+    $('#soluongHoSoQT').value("");
+    $('#selDonViTinh').value("");
+    $('#ghiChuHoSoQT').value("");
+    return false;
+}
+
+$('#btn_LuuNhomVanban').on('click', function () {
+    var arr = new Array();
+    arr[0] = $('#hdfsttHoSoQTpr').value();
+    arr[1] = $('#tenHoSoQT').value();
+    arr[2] = $('#soluongHoSoQT').value();
+    arr[3] = $('#selDonViTinh').value();
+    arr[4] = $('#txtCanCuPhapLyTT').value();
+    var data = NTS.getAjax_v1('/View/quanly/SoHoav2/SoHoa_Nhap.aspx/LuuThongTinToTrinh', { data: arr });
+    NTS.thongbao(data.split('_')[1]);
+    return false;
+});
+//Thay đổi hồ sơ số hóa
+$('#btnThayDoiHoSo').on('click', function () {
+    $('#ModalThayDoiHoSo').modal('show');
+    setTimeout(function () {
+        GridThayDoiHS.redraw(true);
+        GridThayDoiHS.setData(NTS.getAjax_v1('/View/quanly/SoHoav2/SoHoa_Nhap.aspx/GetDataHoSoLuuTru', {}));
+    }, 5);
+    return false;
+});
+//Lưới Hồ sơ số hóa
+function updateFooterGridThayDoiHS() {
+    var el = document.getElementById("row-countGridThayDoiHS");
+    if (GridThayDoiHS != undefined) {
+        var Grid = GridThayDoiHS;
+        if (Grid.rowManager.activeRows.length > 0) {
+            el.innerHTML = 'Dòng: ' + (Grid.rowManager.table.footerManager.links[0].page * Grid.rowManager.table.footerManager.links[0].size - Grid.rowManager.table.footerManager.links[0].size + 1) + ' - ' + (Grid.rowManager.table.footerManager.links[0].page * Grid.rowManager.table.footerManager.links[0].size - Grid.rowManager.table.footerManager.links[0].size + Grid.rowManager.displayRowsCount) + ' của ' + Grid.rowManager.activeRows.length + " - ";
+        }
+        else {
+            el.innerHTML = 'Dòng: 0 - 0 của 0 - ';
+        }
+    }
+}
+var GridThayDoiHS = new Tabulator("#GridThayDoiHS", {
+    height: 350,
+    layout: "fitColumns",
+    pagination: "local",
+    selectable: 1,
+    paginationSize: 50,
+    columnHeaderVertAlign: "center",
+    paginationSizeSelector: [50, 100, 150, 250, 500, true],
+    columns: [
+        { title: "Mã hồ sơ", field: "maHoSo", formatter: 'textarea', hozAlign: "left", visible: true, width: 180, vertAlign: "middle" },
+        { title: "Số hồ sơ", field: "soHoSo", formatter: 'textarea', hozAlign: "left", visible: true, width: 150, vertAlign: "middle" },
+        { title: "Ngày bắt đầu", field: "thoiGianBatDau", formatter: 'textarea', hozAlign: "left", visible: true, width: 120, vertAlign: "middle" },
+        { title: "Dự án", field: "tenDuAn", formatter: 'textarea', hozAlign: "left", visible: true, minWidth: 350, vertAlign: "middle" },
+        { title: "sttHoSoLuuTrupr", field: "sttHoSoLuuTrupr", formatter: 'textarea', hozAlign: "left", visible: false, width: 50 },
+    ],
+    footerElement: "<span id='row-countGridThayDoiHS' style='color:#102D4F;font-size: 13px; font-family: Arial, Helvetica, sans-serif;font-weight:100'></span>", //add element element to footer to contain count
+    dataFiltered: updateFooterGridThayDoiHS,
+    dataLoaded: updateFooterGridThayDoiHS,
+    rowClick: function (e, row) {
+
+    },
+    locale: true,
+    langs: TabulatorLangsVi,
+    placeholder: 'Không có dữ liệu',
+});
+GridThayDoiHS.setLocale("vi");
+$(document).on('keyup', '#timKiemThayDoiHS', function (e) {
+    if (e.keyCode == '13') {
+        GridThayDoiHS.setFilter(matchAny, { value: $(this).val() });
+        updateFooterGridThayDoiHS();
+    }
+});
+
+$(document).on('click', '#btn_ChonvaDongThayDoi', function () {
+    if (GridThayDoiHS.getSelectedRows().length == 0) {
+        NTS.canhbao('Vui lòng chọn hồ sơ cần số hóa!');
+        return false;
+    }
+
+    var data = GridThayDoiHS.getSelectedRows()[0]._row.data;
+    NTS.getAjax_v1("/View/QuanLy/SoHoav2/SoHoa.aspx/SetSesstionHoSoLuuTru", { ID: data.sttHoSoLuuTrupr });
+    $('#ModalThayDoiHoSo').modal('hide');
+    location.reload(true);
+
+});
+var buoc, tmp_click;
+$('#btnLui').on('click', function () {
+    tmp_click = true;
+    var dem = $('.step-content').find('.active').attr('data-step');
+    if (dem + "" == "1") {
+        getDataHoSoVBLuuTruCT($('#hfdsttHoSoVBLuuTrupr').val(), $('#hdfloaiHoSopr_sd2').value());
+        $('#ModalThemMoiVanBan').modal('hide');
+    }
+    if (dem + "" == "2") {
+        $('#bthLuimdVanBan').text("Đóng");
+    }
+    if (dem + "" == "3") {
+        $('#bthLuimdVanBan').text("Quay lại");
+    }
+
+});
+$('#btnTiep').click(function () {
+    tmp_click = false;
+});
+function ChuyenTVsangDatetime(str) {
+    var regex = /(\d{2}).*tháng.*(\d{1,2}).*năm.*(\d{4})/;
+    var regex = new RegExp(regex, "g");
+    var match = regex.exec(str);
+    if (match != null) {
+        var ngay = match[1];
+        var thang = match[2];
+        var nam = match[3];
+        return ngay + "/" + thang + "/" + nam;
+    }
+    return str;
+}
+function TextAreaAutoHeight(text) {
+    //console.log(text);
+    //text.style.height = 'auto';
+    //text.style.height = (text.scrollHeight) + 'px';
+}
+$(document).on('input', ".nhapdulieu textarea", () => { TextAreaAutoHeight(this) });
+
+$(document).on('click', '.btn-remove', function () {
+    $(id_grid + ' .nhapdulieu[data-index="' + $(this).attr('data-index') + '"]').hide();
+});
+
+$(document).on('click', '.nhapdulieu label', function () {
+    $(this).attr('contenteditable', true);
+});
+//Step by step thêm mới văn bản
+var ArrData = [];
+jQuery(function ($) {
+    $('[data-rel=tooltip]').tooltip();
+    $('#fuelux-wizard-container')
+        .ace_wizard({
+            step: 1,
+            buttons: '.wizard-actions:eq(0)'
+        })
+        .on('actionclicked.fu.wizard', function (e, info) {
+            var dem = $('.step-content').find('.active').attr('data-step');
+            if (!tmp_click) {
+                buoc = parseInt(dem) + 1;
+            } else {
+                buoc = parseInt(dem) - 1;
+            }
+            if (buoc == 2 && !tmp_click) {
+                if ($('#LoaiVanBan').value() == "") {
+                    NTS.canhbao("Loại văn bản không được bỏ trống!");
+                    return false;
+                }
+                $('#bthLuimdVanBan').text("Quay lại");
+                // $('#kqnhandang').html('');
+                ArrData = [];
+                var param = [];
+                $('#dstoado a').each(function () {
+                    var kqNhanDang = NTS.getAjax('json', '/View/quanly/SoHoav2/SoHoa_Nhap.aspx/GetTextFromImage', { "imgBase64": $(this).find('img').attr('src') });
+                    if (ArrData[$(this).attr('data-name')] == undefined) {
+                        ArrData[$(this).attr('data-name')] = {
+                            "name": $(this).attr('data-name'),
+                            "text": $(this).find('h6').text(),
+                            "value": kqNhanDang,
+                        };
+                    }
+                    else {
+                        ArrData[$(this).attr('data-name')].value += "\n" + kqNhanDang;
+                    }
+                });
+
+
+                //        for (const [key, value] of Object.entries(ArrData)) {
+                //            if (value != undefined) {
+                //                console.log(value);
+
+                //                //var e = $(`<div class="row"><label class="col-xs-12 col-md-3">${value.text}</label><div class="col-xs-12 col-md-9"><textarea class="form-control" rows="1" name="${value.name}">${value.value}</textarea></div></div>`);
+                //                //$('#kqnhandang').append(e);
+                //                // GÁN DATA QUÉT ĐƯỢC TỪ STEP 2 VÀO STEP 3
+                //                $('#ToSo').value(parseInt($('#selTrang').value()) + 1);
+                //                $('#SoLuongTo').value($('#selTrang option').length);
+                //                if (value.value != undefined) {
+                //                    if (value.name == "SVB") {
+                //                        $('#SoVanBanVB').value(value.value);
+                //                    }
+                //                    else if (value.name == "NK") {
+                //                       c
+                //                        /*  $('#NgayKyVanBan').value(value.value.replace('ngày', '/').replace('tháng', '/').replace('năm', '/'));*/
+                //                    }
+                //                    else if (value.name == "CD") {
+                //                        $('#ChucDanhVB').value(value.value);
+                //                    }
+                //                    else if (value.name == "TY") {
+                //                        $('#TrichYeu').value(value.value);
+                //                    }
+                //                    else if (value.name == "ND") {
+                //                        $('#NoiDungVanBan').value(value.value);
+                //                    }
+                //                    else if (value.name == "CQBH") {
+                //                        var CQBH = NTS.getAjax('string', '/View/quanly/SoHoav2/SoHoa_Nhap.aspx/GetIDTheoTen', { Ten: value.value, Loai: "CQBH" });
+                //                        if (CQBH.replaceAll('"', '') != "") {
+                //                            $('#CQBanHanh').value(CQBH.replaceAll('"', ''));
+                //                        } else {
+                //                            $('#hdfCQBanHanh_ocr').value(value.value);
+                //                        }
+
+                //                    }
+                //                    else if (value.name == "NgK") {
+                //                        var NgK = NTS.getAjax('string', '/View/quanly/SoHoav2/SoHoa_Nhap.aspx/GetNguoiKyIDTheoTen', { Ten: value.value, Loai: "NgK" });
+                //                        if (NgK.replaceAll('"', '') != "") {
+                //                            $('#NguoiKy').value(NgK.replaceAll('"', ''));
+                //                        } else {
+                //                            $('#hdfNguoiKy_ocr').value(value.value);
+                //                        }
+
+                //                    } else {
+                //                        if (ArrData2[value.name] == undefined) {
+                //                            ArrData2[value.name] = {
+                //                                "name": value.name,
+                //                                "text": value.text,
+                //                                "value": value.value,
+                //                            };
+                //                        }
+                //                        else {
+                //                            ArrData2[value.name].value += "\n" + value.value;
+                //                        }
+                //                    }
+                //                }
+                //            }
+                //            if ($('#file').value() != "") {
+                //                dya = new dyamicForm(id_grid, ArrData2, (data) => {
+                //                    if (data.value == undefined) {
+                //                        data.value = "";
+                //                    }
+                //                    return `<div class="row form-group nhapdulieu" data-index="${data._index}">
+                //    <label class="col-md-2 col-form-label" data="truongdulieu_${data._index}">${data.text == '' ? TruongDuLieuChuaXacDinh : data.text}</label>
+                //    <div class="col-md-10">
+                //        <div class="input-group">
+                //            <textarea class="form-control" rows="3" name="${data.text}" id="truongdulieu_${data._index}">${data.value}</textarea>
+                //            <span class="input-group-addon btn-danger btn-remove" style="padding: 6px; border-radius: 0px 3px 3px 0px!important; cursor: pointer; color: #FFFFFF;" data-index="${data._index}">
+                //                <i class='fa fa-trash'></i>
+                //            </span>
+                //        </div>
+                //    </div>
+                //</div>`;
+                //                });
+                //                dya.render();
+
+                //                $(".nhapdulieu textarea").each((text) => {
+                //                    TextAreaAutoHeight(text);
+                //                });
+                //            }
+
+                //        }
+                debugger;
+                $('#ToSo').value(parseInt($('#selTrang').value()) + 1);
+                $('#SoLuongTo').value($('#selTrang option').length);
+                $('#dstoado a').each(function () {
+                    debugger;
+                    var kqNhanDang = NTS.getAjax('json', '/View/quanly/SoHoav2/SoHoa_Nhap.aspx/GetTextFromImage', { "imgBase64": $(this).find('img').attr('src') });
+                    if (kqNhanDang.Err == false) {
+                        switch ($(this).attr('data-name')) {
+                            case 'SVB':
+                                $('#SoVanBanVB').value(kqNhanDang.Result);
+                                break;
+                            case 'NK':
+                                $('#NgayKyVanBan').value(ChuyenTVsangDatetime(kqNhanDang.Result));
+
+                                break;
+                            case 'CD':
+                                $('#ChucDanhVB').value(kqNhanDang.Result);
+                                break;
+                            case 'TY':
+                                $('#TrichYeu').value(kqNhanDang.Result.trim().replaceAll('\n', '').replace(/^\s+|\s+$/gm, ''));
+                                break;
+                            case 'ND':
+                                $('#NoiDungVanBan').value(kqNhanDang.Result.replaceAll('\n', '').replace(/^\s+|\s+$/gm, ''));
+                                break;
+                            case 'CQBH':
+                                var CQBH = NTS.getAjax('string', '/View/quanly/SoHoav2/SoHoa_Nhap.aspx/GetIDTheoTen', { Ten: kqNhanDang.Result, Loai: "CQBH" });
+                                if (CQBH.replaceAll('"', '') != "") {
+                                    $('#CQBanHanh').value(CQBH.replaceAll('"', ''));
+                                } else {
+                                    $('#hdfCQBanHanh_ocr').value(kqNhanDang.Result);
+                                }
+                                break
+                            case 'NgK':
+                                var NgK = NTS.getAjax('string', '/View/quanly/SoHoav2/SoHoa_Nhap.aspx/GetNguoiKyIDTheoTen', { Ten: kqNhanDang.Result, Loai: "NgK" });
+                                if (NgK.replaceAll('"', '') != "") {
+                                    $('#NguoiKy').value(NgK.replaceAll('"', ''));
+                                } else {
+                                    $('#hdfNguoiKy_ocr').value(kqNhanDang.Result);
+                                }
+                                break;
+
+                            default:
+                                {
+                                    if (ArrData2[$(this).attr('data-name')] == undefined) {
+                                        ArrData2[$(this).attr('data-name')] = {
+                                            "name": $(this).attr('data-name'),
+                                            "text": $(this).find('h6').text(),
+                                            "value": kqNhanDang.Result,
+                                        };
+                                    }
+                                    else {
+                                        ArrData2[$(this).attr('data-name')].value += "\n" + kqNhanDang.Result;
+                                    }
+                                }
+                                break;
+                        }
+
+
+                    }
+                    else {
+                        NTS.thongbaoloi(kqNhanDang.Msg);
+                    }
+                });
+                if ($('#file').value() != "") {
+                    dya = new dyamicForm(id_grid, ArrData2, (data) => {
+                        if (data.value == undefined) {
+                            data.value = "";
+                        }
+                        return `<div class="row form-group nhapdulieu" data-index="${data._index}">
+            <label class="col-md-2 col-form-label" data="truongdulieu_${data._index}">${data.text == '' ? TruongDuLieuChuaXacDinh : data.text}</label>
+            <div class="col-md-10">
+                <div class="input-group">
+                    <textarea class="form-control" rows="3" name="${data.text}" id="truongdulieu_${data._index}">${data.value}</textarea>
+                    <span class="input-group-addon btn-danger btn-remove" style="padding: 6px; border-radius: 0px 3px 3px 0px!important; cursor: pointer; color: #FFFFFF;" data-index="${data._index}">
+                        <i class='fa fa-trash'></i>
+                    </span>
+                </div>
+            </div>
+        </div>`;
+                    });
+                    dya.render();
+
+                    $(".nhapdulieu textarea").each((text) => {
+                        TextAreaAutoHeight(text);
+                    });
+                }
+
+            }
+            if (buoc == 3 && !tmp_click) {
+                $('#bthLuimdVanBan').text("Quay lại");
+                if ($("#SoVanBanVB").value() == "") {
+                    NTS.canhbao("Số văn bản không được bỏ trống!");
+                    return false;
+                }
+                if ($("#NgayKyVanBan").value() == "") {
+                    NTS.canhbao("Ngày ký không được bỏ trống!");
+                    return false;
+                }
+                if ($("#LoaiVanBan").value() == "") {
+                    NTS.canhbao("Loại văn bản không được bỏ trống!");
+                    return false;
+                }
+                if ($("#NoiDungVanBan").value() == "") {
+                    NTS.canhbao("Nội dung không được bỏ trống!");
+                    return false;
+                }
+                var mang = [];
+
+
+                $('#kqnhandang .nhapdulieu:visible textarea').each(function () {
+                    let obj = {};
+                    obj[$('label[data="' + $(this).attr('id') + '"]').text()] = $(this).value();
+                    mang.push(obj);
+                });
+
+
+
+                var duongDanVanBan = $('#txtDuongDanFile').val();
+                var param = new Array();
+                param[0] = $('#hfdsttVanBanpr_sd').value();
+                param[1] = $('#SoVanBanVB').value();
+                param[2] = $('#NgayKyVanBan').value();
+                param[3] = $('#CQBanHanh').value();
+                param[4] = $('#NguoiKy').value();
+                param[5] = $('#ChucDanhVB').value();
+                param[6] = $('#LoaiVanBan').value();
+                param[7] = $('#NoiDungVanBan').value();
+                param[8] = $('#GiaTriDuaAnVanBan').value();
+                param[9] = $('#GhiChuVanBan').value();
+                param[10] = $('#hfdsttHoSoVBLuuTrupr').value();
+                param[11] = $('#hdfsttDuAnpr_sd').value();
+                param[13] = $('#CheDoSuDung').value();
+                param[14] = $('#SoThuTu').value();
+                param[15] = $('#ToSo').value();
+                param[16] = $('#SoLuongTo').value();
+                param[17] = $('#TrichYeu').value();
+                param[18] = duongDanVanBan;
+                param[20] = $('#hdfloaiHoSopr_sd2').value();
+                param[21] = $('#txtDuongDanFileVBKhac').val();
+                param[22] = JSON.stringify(mang);
+                if (ThaoTacVanban == "sua") {
+
+                    var ketqua = NTS.getAjax('json', '/View/quanly/SoHoav2/SoHoa_Nhap.aspx/suaVanBan', { data: param });
+                    if (ketqua.split('::')[0] != "1") {
+                        return false;
+                    }
+                    else {
+                        // Vẽ danh sach
+                        var danhSachVanBan = "";
+                        $('#txtDuongDanFile').value(ketqua.split('::')[2].replace('~', '').replace('*', ''));
+                        $('#txtDuongDanFileVBKhac').value(ketqua.split('::')[4]);
+                        var tenVanBan = $('#txtDuongDanFile').value().split('/')[$('#txtDuongDanFile').value().split('/').length - 1];
+                        var kiemTraTinhTrang = NTS.getAjax('json', '/View/quanly/SoHoav2/SoHoa_Nhap.aspx/KiemtraFileKySo', { data: $('#txtDuongDanFile').value().replace('~', '') });
+                        if (kiemTraTinhTrang) {
+                            // nếu đã ký
+                            danhSachVanBan += `
+<div class="alert alert-success" role="alert" style="margin: 2px">
+    <button class="btn btn-sm btn-success" disabled="disabled"><i class="fa fa-check" aria-hidden="true"></i>&ensp;Đã ký số</button>
+    &ensp;
+    <span><a class="link" href="${$('#txtDuongDanFile').value().replaceAll('*', '')}?v=${Math.random()}" target="_blank">${tenVanBan.replaceAll('*', '')}</a></span>
+</div>
+`;
+                        } else {
+                            // chưa ký
+                            danhSachVanBan += `
+<div id="${i + `_fileKySo`}" class="alert alert-warning" role="alert" style="margin: 2px;transition-duration: 300ms;">
+    <button class="btn btn-sm btn-warning kySoVanBan" data="${$('#txtDuongDanFile').value().replaceAll('*', '')}" data-id="${i + `_fileKySo`}"><i class="fa fa-pencil" aria-hidden="true"></i>&ensp;Ký số</button>
+    &ensp;
+    <span><a id="${i + `_linkKySo`}" class="link" href="${$('#txtDuongDanFile').value().replaceAll('*', '')}?v=${Math.random()}" target="_blank">${tenVanBan.replaceAll('*', '')}</a></span>
+</div>
+`;
+                        }
+                        $('#divDanhSachVanBanKySo').html(danhSachVanBan);
+                        NTS.thongbao(ketqua.split('::')[1]);
+                        //$('#txtDuongDanFile').val("");
+                        $('#SuaVanBan').attr("disabled", false);
+                        //getDataHoSoVBLuuTruCT($('#hfdsttHoSoVBLuuTrupr').value(), $('#hdfloaiHoSopr_sd2').value());
+                    }
+                } else if (ThaoTacVanban == "them") {
+                    var danhSachVanBan = "";
+                    param[12] = duongDanVanBan;
+                    var ketqua = NTS.getAjax('json', '/View/quanly/SoHoav2/SoHoa_Nhap.aspx/themVanBan', { data: param });
+                    //$('#txtDuongDanFile').val("");
+                    NTS.thongbao(ketqua.split('::')[1]);
+                    $('#hfdsttVanBanpr_sd').value(ketqua.split('::')[2]);
+                    $('#txtDuongDanFile').value(ketqua.split('::')[3].replace('~', '').replace('*', ''));
+                    $('#txtDuongDanFileVBKhac').value(ketqua.split('::')[4]);
+                    var tenVanBan = $('#txtDuongDanFile').value().split('/')[$('#txtDuongDanFile').value().split('/').length - 1];
+                    var kiemTraTinhTrang = NTS.getAjax('json', '/View/quanly/SoHoav2/SoHoa_Nhap.aspx/KiemtraFileKySo', { data: $('#txtDuongDanFile').value().replace('~', '') });
+                    if (kiemTraTinhTrang) {
+                        // nếu đã ký
+                        danhSachVanBan += `
+<div class="alert alert-success" role="alert" style="margin: 2px">
+    <button class="btn btn-sm btn-success" disabled="disabled"><i class="fa fa-check" aria-hidden="true"></i>&ensp;Đã ký số</button>
+    &ensp;
+    <span><a class="link" href="${$('#txtDuongDanFile').value().replaceAll('*', '')}?v=${Math.random()}" target="_blank">${tenVanBan.replaceAll('*', '')}</a></span>
+</div>
+`;
+                    } else {
+                        // chưa ký
+                        danhSachVanBan += `
+<div id="${i + `_fileKySo`}" class="alert alert-warning" role="alert" style="margin: 2px;transition-duration: 300ms;">
+    <button class="btn btn-sm btn-warning kySoVanBan" data="${$('#txtDuongDanFile').value().replaceAll('*', '')}" data-id="${i + `_fileKySo`}"><i class="fa fa-pencil" aria-hidden="true"></i>&ensp;Ký số</button>
+    &ensp;
+    <span><a id="${i + `_linkKySo`}" class="link" href="${$('#txtDuongDanFile').value().replaceAll('*', '')}?v=${Math.random()}" target="_blank">${tenVanBan.replaceAll('*', '')}</a></span>
+</div>
+`;
+                    }
+                    $('#divDanhSachVanBanKySo').html(danhSachVanBan);
+                    $('#SuaVanBan').attr("disabled", true);
+                    //getDataHoSoVBLuuTruCT($('#hfdsttHoSoVBLuuTrupr').value(), $('#hdfloaiHoSopr_sd2').value());
+                }
+                ThaoTacVanban = "sua";
+            }
+
+        })
+        .on('finished.fu.wizard', function (e) {
+            var wizard = $('#fuelux-wizard-container').data('fu.wizard');
+            wizard.currentStep = 1;
+            wizard.setState();
+            //LoadDuLieu_Grid1();
+            getDataHoSoVBLuuTruCT($('#hfdsttHoSoVBLuuTrupr').val(), $('#hdfloaiHoSopr_sd2').value());
+            thongtinNhanh();
+            setTimeout(function () {
+                Grid1.refresh();
+            }, 150);
+            CapNhatSoLuongNhomSH($('#hdfloaiHoSopr_sd2').value(), $('#hfdsttHoSoVBLuuTrupr').value());
+
+            $('#ModalThemMoiVanBan').modal('hide');
+        })
+        .on('started.fu.wizard');
+});
+function CapNhatSoLuongNhomSH(sttNhomSoHoapr, sttHoSoLuuTrupr) {
+    var ketqua = NTS.getAjax('json', '/View/quanly/SoHoav2/SoHoa_Nhap.aspx/DanhSachNhomVanBanByID', { sttNhomSoHoapr: sttNhomSoHoapr });
+    if (ketqua.length > 0) {
+        for (var i = 0; i < ketqua.length; i++) {
+            var dataCapNhat = NTS.getAjax('string', '/View/quanly/SoHoav2/SoHoa_Nhap.aspx/CapNhatSoLuong_NhomVanBan', { sttNhomSoHoapr: ketqua[i].sttNhomSoHoapr });
+            $('#nhomVb_' + ketqua[i].sttNhomSoHoapr).text(dataCapNhat.replaceAll('"', '') + ')');
+        }
+    }
+    var dataCapNhatDA = NTS.getAjax('string', '/View/quanly/SoHoav2/SoHoa_Nhap.aspx/CapNhatSoLuongDA_NhomVanBan', { sttHoSoLuuTrupr: sttHoSoLuuTrupr });
+    $('#nhomVb_DuAn').text(dataCapNhatDA.replaceAll('"', '') + ')');
+}
+//////////////////////////////// XỬ LÝ CODE OCR ////////////////////////////
+function SelectTrang(trang) {
+    data_page = trang;
+    var srcImage = ListImages[trang];
+    $('#image2').attr('src', srcImage);
+    if (cropper && typeof cropper === 'object') {
+        try {
+            cropper.replace(srcImage, true);
+        }
+        catch (e) {
+            try {
+                cropper.replace(srcImage);
+            } catch (e) { }
+        }
+        cropper.clear();
+    }
+    else {
+        const image = document.getElementById('image');
+        image.src = srcImage;
+        cropper = new Cropper(image, {
+            autoCrop: false,
+            highlight: true,
+            zoomable: false
+        });
+        cropper.clear();
+        image.addEventListener('cropend', showContextMenu);
+        image.addEventListener('cropstart', hideContextMenu);
+    }
+}
+$('#selTrang').on('change', function () {
+    SelectTrang(this.value == "" ? 0 : this.value);
+});
+//#region cropper
+function showContextMenu() {
+    var a = $('.cropper-crop-box').position();
+    var b = $('.cropper-crop-box').width();
+    if (b > 10) {
+        $('#contextmenu').show();
+        $('#contextmenu').css('top', a.top);
+        $('#contextmenu').css('left', a.left + b + 20);
+        $(`#contextmenu .list-group a`).removeClass('active');
+    }
+}
+function hideContextMenu() {
+    $('#contextmenu').hide();
+}
+$(document).on('click', '#dstoado a i', function (e) {
+    $(this).parent().parent().remove();
+    e.stopPropagation();
+});
+function xulyNhan() {
+    const data = cropper.getData();
+    var a = `#dstoado a[data-name="${$(this).attr('data-name')}"][data-page="${data_page}"]`;
+
+    var p = `Tọa độ: (${Math.round(data.x)}, ${Math.round(data.y)}) - Kích thước: (${Math.round(data.width)}, ${Math.round(data.height)})`;
+    if ($(a).length > 0) {
+        var e = $(a);
+        e.find('p').text(p);
+    }
+    else {
+        var e = $(`<a href="#" class="list-group-item" data-name="${$(this).attr('data-name')}" data-page="${data_page}"><h6>${$(this).text()}<i class="red fa fa-times pull-right" title="Xóa"></i></h6><p>${p}</p><img class="d-none" alt="img hidden" /></a>`);
+        $('#dstoado').append(e);
+    }
+    e.attr('data-x', data.x);
+    e.attr('data-y', data.y);
+    e.attr('data-width', data.width);
+    e.attr('data-height', data.height);
+    e.find('img').attr('src', cropper.getCroppedCanvas().toDataURL('image/jpeg'));
+    $('#contextmenu').hide();
+};
+var data;
+$(document).ready(function () {
+
+    data = NTS.getAjax('json', '/View/quanly/SoHoav2/SoHoa_Nhap.aspx/getTruongDuLieu', { LoaiVanBan: $('#LoaiVanBan').value() });
+    // each
+    data.forEach(item => {
+        var a = $('<a class="list-group-item"></a>');
+        a.attr('data-name', item.maTruongDuLieupr);
+        a.text(item.tenTruongDuLieu);
+        a.click(xulyNhan);
+        $('#contextmenu .list-group').append(a);
+    }
+    );
+});
+$("#LoaiVanBan").change(function () {
+    $('#contextmenu .list-group').html('');
+    data = NTS.getAjax('json', '/View/quanly/SoHoav2/SoHoa_Nhap.aspx/getTruongDuLieu', { LoaiVanBan: $('#LoaiVanBan').value() });
+    // each
+    data.forEach(item => {
+        var a = $('<a class="list-group-item"></a>');
+        a.attr('data-name', item.maTruongDuLieupr);
+        a.text(item.tenTruongDuLieu);
+        a.click(xulyNhan);
+        $('#contextmenu .list-group').append(a);
+    }
+    );
+});
+$(document).on('click', '#dstoado a', function () {
+    SelectTrang($(this).attr('data-page'));
+    console.log($(this).attr('data-page'));
+
+    cropper.crop();
+    hideContextMenu();
+    var a = $(this);
+    cropper.setData({
+        x: parseFloat(a.attr('data-x')),
+        y: parseFloat(a.attr('data-y')),
+        width: parseFloat(a.attr('data-width')),
+        height: parseFloat(a.attr('data-height'))
+    });
+    showContextMenu();
+    $(`#contextmenu .list-group a[data-name="${a.attr('data-name')}"]`).addClass('active');
+});
+//#endregion
+//#region actions
+var actions = document.getElementById('actions');
+actions.querySelector('.docs-buttons').onclick = function (event) {
+    var e = event || window.event;
+    var target = e.target || e.srcElement;
+    var cropped;
+    var result;
+    var input;
+    var data;
+    if (!cropper) {
+        return;
+    }
+    while (target !== this) {
+        if (target.getAttribute('data-method')) {
+            break;
+        }
+        target = target.parentNode;
+    }
+    if (target === this || target.disabled || target.className.indexOf('disabled') > -1) {
+        return;
+    }
+    data = {
+        method: target.getAttribute('data-method'),
+        target: target.getAttribute('data-target'),
+        option: target.getAttribute('data-option') || undefined,
+        secondOption: target.getAttribute('data-second-option') || undefined
+    };
+    cropped = cropper.cropped;
+    if (data.method) {
+        if (typeof data.target !== 'undefined') {
+            input = document.querySelector(data.target);
+            if (!target.hasAttribute('data-option') && data.target && input) {
+                try {
+                    data.option = JSON.parse(input.value);
+                } catch (e) {
+                }
+            }
+        }
+        result = cropper[data.method](data.option, data.secondOption);
+        switch (data.method) {
+            case 'scaleX':
+            case 'scaleY':
+                target.setAttribute('data-option', -data.option);
+                break;
+            case 'getCroppedCanvas':
+                if (result) {
+                    // Bootstrap's Modal
+                    $('#getCroppedCanvasModal').modal().find('.modal-body').html(result);
+                    if (!download.disabled) {
+                        download.download = uploadedImageName;
+                        download.href = result.toDataURL(uploadedImageType);
+                    }
+                }
+                break;
+            case 'destroy':
+                cropper = null;
+                if (uploadedImageURL) {
+                    URL.revokeObjectURL(uploadedImageURL);
+                    uploadedImageURL = '';
+                    image.src = originalImageURL;
+                }
+                break;
+            case 'clear':
+                hideContextMenu();
+                break;
+        }
+        if (typeof result === 'object' && result !== cropper && input) {
+            try {
+                input.value = JSON.stringify(result);
+            } catch (e) {
+            }
+        }
+    }
+};
+//#endregion
+///////////////////////////////////////////////////////////////////////////
+function Grid3_Edi(record) {
+
+    ThaoTacHoSo = 'Sua';
+    LoaiHoSo = 'HoSoThieu'
+    $('#tilemdThemMoiGird').text('Cập nhật thông tin hồ sơ thiếu');
+    $('#labThongTinHoSo').text('Thông tin hồ sơ thiếu');
+    $('#labdanhMucHoSo').text('Danh mục hồ sơ thiếu');
+    document.getElementById("ctl00_ContentPlaceHolder1_hdfsttHSQTpr_sd").value = record.sttHSQTThieupr;
+    $('#txtSoLuong').value(record.soLuong);
+    $('#txtGhiChu').value(record.ghiChu);
+    $('#danhMucHoSo').value(record.danhMuc);
+    $('#cboDonViTinh').value(record.donViTinhpr_sd);
+    $('#mdThemMoiGird').modal('show');
+    return false;
+}
+
+function Grid3_bfDel(record) {
+
+    if (!ntspermiss.xoa) {
+        NTS.canhbao("User bạn đang sử dụng không thể thực hiện thao tác xóa. Vui lòng kiểm tra lại.");
+        return false;
+    }
+    else {
+        var dialog = bootbox.dialog({
+            title: 'Cảnh báo',
+            message: NTS.CauThongBaoXoa(),
+            size: 'large',
+            buttons: {
+                ok: {
+                    label: '<i class="fa fa-close"></i> Huỷ bỏ',
+                    className: 'btn-danger',
+                },
+                noclose: {
+                    label: '<i class="fa fa-check"></i> Chấp nhận',
+                    className: 'btn-primary',
+                    callback: function () {
+                        var result_ktxoa = NTS.getAjax("json", '/View/QuanLy/QuyetToanHoanThanh/NopBaoCaoQT.aspx/kiemTraXoa3', { data: record.sttBaoCaoQTpr });
+                        if (result_ktxoa == "") {
+                            var data = NTS.getAjax('json', '/View/QuanLy/QuyetToanHoanThanh/NopBaoCaoQT.aspx/XoaGrid3', { data: record.sttBaoCaoQTpr });
+                            if (data.split('_')[0] == "1") {
+                                Grid3.refresh();
+                                NTS.thongbao(data.split('_')[1]);
+                            }
+                            else {
+                                NTS.thongbaoloi(data.split('_')[1]);
+                            }
+                        }
+                        else {
+                            bootbox.dialog({
+                                title: "Cảnh báo",
+                                message: "Dữ liệu này đang được sử dụng. Không thể xoá, danh sách chức năng kèm theo:<br><table>" + result_ktxoa + "</table>",
+                                className: 'bb-alternate-modal',
+                                buttons: {
+                                    cancel: {
+                                        label: '<i class="fa fa-close"></i> Đóng',
+                                        className: "btn-danger btn-sm",
+                                    }
+                                },
+                            })
+                        }
+                    }
+                },
+
+            }
+        });
+        return false;
+    }
+    return false;
+}
+
+function OnClientDblClick_Grid3(record) {
+    if (DuyetHS == false) {
+        Grid3.editRecord(record);
+    }
+}
+
+function Grid3_OnClientCallback() {
+
+}
+
+var duongDanFileBaoCao = "";
+function TaoBaoCao() {
+    $('#mdTaoBaoCao').modal('show');
+    duongDanFileBaoCao = "";
+    $('.divAnThietLap').hide();
+    setTimeout(function () {
+        Grid4.refresh();
+    }, 10);
+    return false;
+}
+
+//Thiết lập báo cáo
+var arrBaoCaoMau = new Array();
+$(document).on('click', '.btnThietLap', function () {
+    var kyHieuBC = $(this).attr('data');
+    $('#lblBaoCao').text('Đang thiết lập mẫu: ' + kyHieuBC);
+    $('.divAnThietLap').hide();
+    if (kyHieuBC == '01/QTDA') {
+        $('#div01QTDA').show();
+    }
+    else
+        if (kyHieuBC == '02/QTDA') {
+            $('#div02QTDA').show();
+        }
+        else
+            if (kyHieuBC == '03/QTDA') {
+                $('#div03QTDA').show();
+            }
+            else
+                if (kyHieuBC == '04/QTDA') {
+                    $('#div04QTDA').show();
+                }
+                else
+                    if (kyHieuBC == '05/QTDA') {
+                        $('#div05QTDA').show();
+                    }
+                    else
+                        if (kyHieuBC == '06/QTDA') {
+                            $('#div06QTDA').show();
+                        }
+                        else
+                            if (kyHieuBC == '07/QTDA') {
+                                $('#div07QTDA').show();
+                            }
+                            else
+                                if (kyHieuBC == '08/QTDA') {
+                                    $('#div08QTDA').show();
+                                }
+                                else
+                                    if (kyHieuBC == '09/QTDA') {
+                                        $('#div09QTDA').show();
+                                    }
+    return false;
+});
+
+var buocBC, tmp_clickBC;
+var LoaiIn = 1;
+$('#btnLuiBC').on('click', function () {
+    tmp_clickBC = true;
+    var dem = $('#fuelux-wizard-container-us-tao-bao-cao .step-content').find('.active').attr('data-step');
+    if (dem + "" == "1") {
+        $('#mdTaoBaoCao').modal('hide');
+        Grid3.refresh();
+    }
+});
+$('#btnTiepBC').click(function () {
+    tmp_clickBC = false;
+});
+jQuery(function ($) {
+    var $validation = true;
+    $('#fuelux-wizard-container-us-tao-bao-cao')
+        .ace_wizard({
+            step: 1,//optional argument. wizard will jump to step "2" at first
+            buttons: '.wizard-actions-bao-cao:eq(0)'
+        })
+        .on('actionclicked.fu.wizard', async function (e, info) {
+            var dem = $('#fuelux-wizard-container-us-tao-bao-cao .step-content').find('.active').attr('data-step');
+            if (!tmp_clickBC) {
+                buocBC = parseInt(dem) + 1;
+            } else {
+                buocBC = parseInt(dem) - 1;
+            }
+            if (buocBC == 2) {
+                if ($("#hdfsttDuAnpr_sd").value() == "") {
+                    NTS.canhbao('Bạn chưa chọn dự án!');
+                    return false;
+                }
+
+                await TaoExcelBaoCao();
+                var strBaoCaoDaChon = "";
+                $('*[id*=Grid4_Check]:checked').each(function (e, v) {
+                    if (strBaoCaoDaChon.length == 0) {
+                        strBaoCaoDaChon = $(v).attr('data-stt');
+                    } else {
+                        strBaoCaoDaChon += ',' + $(v).attr('data-stt');
+                    }
+                });
+                $('#ctl00_ContentPlaceHolder1_hfdstrBaoCaoDaChon').value(strBaoCaoDaChon);
+                Grid5.refresh();
+                e.preventDefault();
+            }
+            else if (buocBC == 3) {
+                //Grid3.refresh();
+            }
+            if (buocBC >= 2 && !tmp_clickBC) {
+
+            }
+        })
+        .on('finished.fu.wizard', function (e) {
+            var wizard = $('#fuelux-wizard-container-us-tao-bao-cao').data('fu.wizard');
+            wizard.currentStep = 1;
+            wizard.setState();
+            $('#mdTaoBaoCao').modal('hide');
+            setTimeout(function () {
+                Grid3.refresh();
+            }, 10);
+        })
+});
+
+async function TaoExcelBaoCao() {
+    var arrBaoCao = new Array();
+    $('*[id*=Grid4_Check]:checked').each(function (e, v) {
+        arrBaoCao.push([$(v).attr('data'), '', $(v).attr('data-stt')]);
+    });
+    if (arrBaoCao.length == 0) {
+        NTS.canhbao('Vui lòng tích chọn báo cáo để tạo báo cáo!');
+        return false;
+    } else {
+        await TaoBaoCaoTheoDS(arrBaoCao);
+    }
+}
+async function TaoBaoCaoTheoDS(arrBaoCao) {
+    var chuoiThongBao = "Đã tạo thành công các mẫu báo cáo!";
+    for (var i = 0; i < arrBaoCao.length; i++) {
+        if (arrBaoCao[i][0] == '01/QTDA') {
+            var data = await NTS.getAjaxAsync_v1('/View/baocao/TT96_2021_QLDA/HoanThanh/mauSo01.aspx/XuatBaoCao', {
+                DK_MaDuAnpr_sd: $('#hdfsttDuAnpr_sd').value(),
+                DK_HMCT: $('#cboHangMuc').value(),
+                DK_ThietHai: $('#txtThietHai_01QTDA').value(),
+                DK_KhongTaoTS: $('#txtKhongTaoTS_01QTDA').value(),
+                DK_KienNghi: $('#txtKienNghi_01QTDA').value(),
+                DK_checkCPDuAn: $('#checkCPDuAn_01QTDA').value(),
+                DK_checkAnCPDuPhong: $('#checkAnCPDuPhong_01QTDA').value(),
+                DK_checkChiTietNam: $('#checkChiTietNam_01QTDA').value(),
+                NguoiLap: '',
+                KeToanTruong: '',
+                ThuTruong: '',
+                NgayLap: '',
+                ChuDauTu: '',
+                MaDonVi: '',
+            });
+            if (data.ErrCode == "-1") {
+                NTS.canhbao(data.Msg)
+                return false;
+            } else {
+                arrBaoCao[i][1] = data.Result;
+                await LuuBaoCao(arrBaoCao[i][1], arrBaoCao[i][2]);
+                //chuoiThongBao += "01/QTDA, ";
+            }
+        }
+        if (arrBaoCao[i][0] == '02/QTDA') {
+            var data = await NTS.getAjaxAsync_v1('/View/baocao/TT96_2021_QLDA/HoanThanh/mauSo02.aspx/XuatBaoCao', {
+                DK_MaDuAnpr_sd: $('#hdfsttDuAnpr_sd').value(),
+                DK_HMCT: $('#cboHangMuc').value(),
+                DK_checkAnBBNghiemThu: $('#checkAnBBNghiemThu_02QTDA').value(),
+                NguoiLap: '',
+                KeToanTruong: '',
+                ThuTruong: '',
+                NgayLap: '',
+                ChuDauTu: ''
+            });
+            if (data.ErrCode == "-1") {
+                NTS.canhbao(data.Msg)
+                return false;
+            } else {
+                arrBaoCao[i][1] = data.Result;
+                await LuuBaoCao(arrBaoCao[i][1], arrBaoCao[i][2]);
+            }
+        }
+        if (arrBaoCao[i][0] == '03/QTDA') {
+            var data = await NTS.getAjaxAsync_v1('/View/baocao/TT96_2021_QLDA/HoanThanh/mauSo03.aspx/XuatBaoCao', {
+                DK_MaDuAnpr_sd: $('#hdfsttDuAnpr_sd').value(),
+                DK_sttHMCTrinhpr_sd: $('#cboHangMuc').value(),
+                DK_NhanXet: $('#NhanXet_03QTDA').value(),
+                DK_GiaiThich: $('#GiaiThich_03QTDA').value(),
+                DK_KienNghi: $('#KienNghi_03QTDA').value(),
+                NguoiLap: '',
+                KeToanTruong: '',
+                ThuTruong: '',
+                NgayLap: '',
+                ThuHoiTU: $('#chkThuHoiTamUng_03QTDA').value(),
+                MaDonVi: ''
+            });
+            if (data.ErrCode == "-1") {
+                NTS.canhbao(data.Msg)
+                return false;
+            } else {
+                arrBaoCao[i][1] = data.Result;
+                await LuuBaoCao(arrBaoCao[i][1], arrBaoCao[i][2]);
+            }
+        }
+        if (arrBaoCao[i][0] == '04/QTDA') {
+            var data = await NTS.getAjaxAsync_v1('/View/baocao/TT96_2021_QLDA/HoanThanh/mauSo04.aspx/XuatBaoCao', {
+                DK_MaDuAnpr_sd: $('#hdfsttDuAnpr_sd').value(),
+                DK_HMCT: $('#cboHangMuc').value(),
+                DK_checkAnCPDuPhong: $('#checkAnCPDuPhong_04QTDA').value(),
+                DK_checkAnChiTietCP: $('#checkAnChiTietCP_04QTDA').value(),
+                NguoiLap: '',
+                KeToanTruong: '',
+                ThuTruong: '',
+                NgayLap: '',
+                ChuDauTu: '',
+                DonVi: ''
+            });
+            if (data.ErrCode == "-1") {
+                NTS.canhbao(data.Msg)
+                return false;
+            } else {
+                arrBaoCao[i][1] = data.Result;
+                await LuuBaoCao(arrBaoCao[i][1], arrBaoCao[i][2]);
+            }
+        }
+
+        if (arrBaoCao[i][0] == '05/QTDA') {
+            var data = await NTS.getAjaxAsync_v1('/View/baocao/TT96_2021_QLDA/HoanThanh/mauSo05.aspx/XuatBaoCao', {
+                DK_MaDuAnpr_sd: $('#hdfsttDuAnpr_sd').value(),
+                DK_HMCT: $('#cboHangMuc').value(),
+                DK_checkHienThiNamKHV: $('#checkHienThiNamKHV_05QTDA').value(),
+                NguoiLap: '',
+                KeToanTruong: '',
+                ThuTruong: '',
+                NgayLap: '',
+                ChuDauTu: '',
+                DK_checkHienTongSo: $('#checkHienTongSo_05QTDA').value(),
+                DonVi: ''
+            });
+
+            if (data.ErrCode == "-1") {
+                NTS.canhbao(data.Msg)
+                return false;
+            } else {
+                arrBaoCao[i][1] = data.Result;
+                await LuuBaoCao(arrBaoCao[i][1], arrBaoCao[i][2]);
+            }
+        }
+
+        if (arrBaoCao[i][0] == '06/QTDA') {
+            var data = await NTS.getAjaxAsync_v1('/View/baocao/TT96_2021_QLDA/HoanThanh/mauSo06.aspx/XuatBaoCao', {
+                DK_MaDuAnpr_sd: $('#hdfsttDuAnpr_sd').value(),
+                DK_HMCT: $('#cboHangMuc').value(),
+                DK_checkAnCPDuPhong: $('#checkAnCPDuPhong_06QTDA').value(),
+                NguoiLap: '',
+                KeToanTruong: '',
+                ThuTruong: '',
+                NgayLap: '',
+                ChuDauTu: '',
+                DK_checkHienTongSo: $('#checkHienTongSo_06QTDA').value(),
+                DonVi: ''
+            });
+
+            if (data.ErrCode == "-1") {
+                NTS.canhbao(data.Msg)
+                return false;
+            } else {
+                arrBaoCao[i][1] = data.Result;
+                await LuuBaoCao(arrBaoCao[i][1], arrBaoCao[i][2]);
+            }
+        }
+
+        if (arrBaoCao[i][0] == '07/QTDA') {
+            var data = await NTS.getAjaxAsync_v1('/View/baocao/TT96_2021_QLDA/HoanThanh/mauSo07.aspx/XuatBaoCao', {
+                DK_MaDuAnpr_sd: $('#hdfsttDuAnpr_sd').value(),
+                DK_HMCT: $('#cboHangMuc').value(),
+                DK_checkAnCPDuPhong: $('#checkAnCPDuPhong_07QTDA').value(),
+                NguoiLap: '',
+                KeToanTruong: '',
+                ThuTruong: '',
+                NgayLap: '',
+                ChuDauTu: '',
+                DonVi: ''
+            });
+
+            if (data.ErrCode == "-1") {
+                NTS.canhbao(data.Msg)
+                return false;
+            } else {
+                arrBaoCao[i][1] = data.Result;
+                await LuuBaoCao(arrBaoCao[i][1], arrBaoCao[i][2]);
+            }
+        }
+
+        if (arrBaoCao[i][0] == '08/QTDA') {
+            var data = await NTS.getAjaxAsync_v1('/View/baocao/TT96_2021_QLDA/HoanThanh/mauSo08.aspx/XuatBaoCao', {
+                DK_KyBaoCao: '0',
+                DK_TenKyBaoCao: 'Tất cả',
+                DK_TuNgay: '',
+                DK_DenNgay: '',
+                DK_MaDuAnpr_sd: $('#hdfsttDuAnpr_sd').value(),
+                DK_sttHMCTrinhpr_sd: $('#cboHangMuc').value(),
+                DK_NhomDonViThucHien: $('#NhomDonViThucHien_08QTDA').value(),
+                DK_TachCot4: $('#TachCot4_08QTDA').value(),
+                DK_LayTheoTenGoiThau: $('#LayTheoTenGoiThau_08QTDA').value(),
+                DK_LayTheoTenHopDong: $('#LayTheoTenHopDong_08QTDA').value(),
+                NguoiLap: '',
+                KeToanTruong: '',
+                ThuTruong: '',
+                NgayLap: '',
+                DonVi: ''
+            });
+
+            if (data.ErrCode == "-1") {
+                NTS.canhbao(data.Msg)
+                return false;
+            } else {
+                arrBaoCao[i][1] = data.Result;
+                await LuuBaoCao(arrBaoCao[i][1], arrBaoCao[i][2]);
+            }
+        }
+
+        if (arrBaoCao[i][0] == '09/QTDA') {
+            var data = await NTS.getAjaxAsync_v1('/View/baocao/TT96_2021_QLDA/HoanThanh/mauSo09.aspx/XuatBaoCao', {
+                CheckThanhToanNam: $('#CheckThanhToanNam_09QTDA').value(),
+                KyBaoCao: '0',
+                TuNgay: '',
+                DenNgay: '',
+                DuAn: $('#hdfsttDuAnpr_sd').value(),
+                NguoiLap: '',
+                KeToanTruong: '',
+                ThuTruong: '',
+                NgayLap: '',
+                DK_ThietHai: $('#txtThietHai_09QTDA').value(),
+                DK_KhongTaoTS: $('#txtKhongTaoTS_09QTDA').value(),
+                DK_KienNghi: $('#txtKienNghi_09QTDA').value(),
+                DonVi: ''
+            });
+
+            if (data.ErrCode == "-1") {
+                NTS.canhbao(data.Msg)
+                return false;
+            } else {
+                arrBaoCao[i][1] = data.Result;
+                await LuuBaoCao(arrBaoCao[i][1], arrBaoCao[i][2]);
+            }
+        }
+    }
+    //$('#tuDongTaoBaoCao').value(false);
+    NTS.thongbao(chuoiThongBao);
+}
+async function tuDongTaoBaoCao() {
+    var arrBaoCao = new Array();
+    var data = NTS.getAjax('json', '/View/QuanLy/QuyetToanHoanThanh/NopBaoCaoQT.aspx/DanhSachBaoCaoTuDong', {});
+    for (var i = 0; i < data.length; i++) {
+        arrBaoCao.push([data[i].maBaoCao, '', data[i].sttBaoCaopr]);
+    }
+    await TaoBaoCaoTheoDS(arrBaoCao);
+}
+async function LuuBaoCao(duongDanFileBaoCao, sttBaoCaopr) {
+    var file = duongDanFileBaoCao;
+    var extFile = ".xlsx";
+    if (file.lastIndexOf("xuatword") != -1)
+        extFile = ".docx"
+    var linkFile = duongDanFileBaoCao.replace("." + file.substr((file.lastIndexOf('.') + 1)), extFile);
+    var data = NTS.getAjax_v1('/View/QuanLy/SoHoav2/SoHoa_Nhap.aspx/LuuFileBaoCao', { sttHoSoVBLuuTrupr_sd: $('#ctl00_ContentPlaceHolder1_hdf_sttHoSoVBLuuTrupr_sd').value(), sttBaoCaopr_sd: sttBaoCaopr, data: linkFile });
+    if (!data.Err) {
+        //NTS.thongbao('Đã thêm báo cáo thành công!');
+    } else {
+        NTS.canhbao(data.Msg);
+        return false;
+    }
+}
+async function XemBaoCao(link) {
+    var fileExt = link.split('.').pop();
+    fileExt = fileExt.toLocaleLowerCase();
+    if (fileExt == 'jpg' || fileExt == 'png' || fileExt == 'jpeg' || fileExt == 'zip' || fileExt == 'rar') {
+        window.open($(this).attr('data-url-file'));
+    } else
+        if (fileExt == 'xlsx' || fileExt == 'xls' || fileExt == 'doc' || fileExt == 'docx' || fileExt == 'pdf') {
+            $('#noiDungXemBaoCao').attr("src", '');
+            var data = await NTS.getAjaxAsync('string', "/Services/WebServiceSystem.asmx/InDinhKem", { data: '~' + link });
+            if (data == '') {
+                NTS.canhbao('Không có đính kèm!');
+                return false;
+            }
+            $('#noiDungXemBaoCao').attr("src", data + "?v=" + Math.random());
+            $('#mdXemBaoCao').modal('show');
+        } else {
+            NTS.canhbao('File chưa được hỗ trợ để xem!');
+        }
+}
+function LuuToTrinh() {
+    var arr = new Array();
+    arr[0] = $('#hfdsttHoSoVBLuuTrupr').value();
+    arr[1] = $('#txtSoToTrinh').value();
+    arr[2] = $('#txtNgayLapTT').value();
+    arr[3] = $('#txtNoiDungTrinhKy').value();
+    arr[4] = $('#txtCanCuPhapLyTT').value();
+    var data = NTS.getAjax_v1('/View/quanly/SoHoav2/SoHoa_Nhap.aspx/LuuThongTinToTrinh', { data: arr });
+    NTS.thongbao(data.split('_')[1]);
+    return false;
+}
+
+function XemToTrinh() {
+    $('#mdXuatWordTapHopCP').modal("show");
+    return false;
+}
+async function In_ChungTuBia() {
+    var dataKT = NTS.getAjax_v1('/View/quanly/SoHoav2/SoHoa_Nhap.aspx/KiemTraToTrinh', { data: $('#hfdsttHoSoVBLuuTrupr').value() });
+    if (dataKT.split('_')[0] == "-1") {
+        NTS.canhbao(dataKT.split('_')[1]);
+        return false;
+    }
+    var data = await NTS.getAjaxAsync('string', "/View/quanly/SoHoav2/SoHoa_Nhap.aspx/xuatWordBia", { sttHoSoLuuTrupr_sd: $('#hfdsttHoSoVBLuuTrupr').value() });
+    try {
+        if (data.search('.pdf') != -1) {
+            $('#divNoiDung_us').attr("src", data);
+            $('#modal_xemtruockhiin_us').modal('show');
+        } else {
+            window.open(window.location.origin + data, '_blank');
+        }
+    } catch { window.open(window.location.origin + data, '_blank'); }
+
+    return false;
+}
+async function In_TTTHCPMacDinh() {
+    var dataKT = NTS.getAjax_v1('/View/quanly/SoHoav2/SoHoa_Nhap.aspx/KiemTraToTrinh', { data: $('#hfdsttHoSoVBLuuTrupr').value() });
+    if (dataKT.split('_')[0] == "-1") {
+        NTS.canhbao(dataKT.split('_')[1]);
+        return false;
+    }
+    var data = await NTS.getAjaxAsync('string', "/View/quanly/SoHoav2/SoHoa_Nhap.aspx/xuatWord_THCP", { sttHoSoLuuTrupr_sd: $('#hfdsttHoSoVBLuuTrupr').value(), chkHienChiPhiCon: $('#chkHienChiTietCP').value() });
+    try {
+        if (data.search('.pdf') != -1) {
+            $('#divNoiDung_us').attr("src", data);
+            $('#modal_xemtruockhiin_us').modal('show');
+        } else {
+            window.open(window.location.origin + data, '_blank');
+        }
+    } catch { window.open(window.location.origin + data, '_blank'); }
+    return false;
+}
+async function In_TTTHCPTamNong() {
+    var dataKT = NTS.getAjax_v1('/View/quanly/SoHoav2/SoHoa_Nhap.aspx/KiemTraToTrinh', { data: $('#hfdsttHoSoVBLuuTrupr').value() });
+    if (dataKT.split('_')[0] == "-1") {
+        NTS.canhbao(dataKT.split('_')[1]);
+        return false;
+    }
+    var data = await NTS.getAjaxAsync('string', "/View/quanly/SoHoav2/SoHoa_Nhap.aspx/xuatWord_TamNong", { sttHoSoLuuTrupr_sd: $('#hfdsttHoSoVBLuuTrupr').value(), chkHienChiPhiCon: $('#chkHienChiTietCP').value() });
+    try {
+        if (data.search('.pdf') != -1) {
+            $('#divNoiDung_us').attr("src", data);
+            $('#modal_xemtruockhiin_us').modal('show');
+        } else {
+            window.open(window.location.origin + data, '_blank');
+        }
+    } catch { window.open(window.location.origin + data, '_blank'); }
+    return false;
+}
+async function In_TTTHCPHongNgu() {
+    var dataKT = NTS.getAjax_v1('/View/quanly/SoHoav2/SoHoa_Nhap.aspx/KiemTraToTrinh', { data: $('#hfdsttHoSoVBLuuTrupr').value() });
+    if (dataKT.split('_')[0] == "-1") {
+        NTS.canhbao(dataKT.split('_')[1]);
+        return false;
+    }
+    var data = await NTS.getAjaxAsync('string', "/View/quanly/SoHoav2/SoHoa_Nhap.aspx/xuatWord_HongNgu", { sttHoSoLuuTrupr_sd: $('#hfdsttHoSoVBLuuTrupr').value(), chkHienChiPhiCon: $('#chkHienChiTietCP').value() });
+    try {
+        if (data.search('.pdf') != -1) {
+            $('#divNoiDung_us').attr("src", data);
+            $('#modal_xemtruockhiin_us').modal('show');
+        } else {
+            window.open(window.location.origin + data, '_blank');
+        }
+    } catch { window.open(window.location.origin + data, '_blank'); }
+    return false;
+}
+async function In_TTTHCPSocTrang() {
+    var dataKT = NTS.getAjax_v1('/View/quanly/SoHoav2/SoHoa_Nhap.aspx/KiemTraToTrinh', { data: $('#hfdsttHoSoVBLuuTrupr').value() });
+    if (dataKT.split('_')[0] == "-1") {
+        NTS.canhbao(dataKT.split('_')[1]);
+        return false;
+    }
+    var data = await NTS.getAjaxAsync('string', "/View/quanly/SoHoav2/SoHoa_Nhap.aspx/xuatWord_SocTrang", { sttHoSoLuuTrupr_sd: $('#hfdsttHoSoVBLuuTrupr').value(), chkHienChiPhiCon: $('#chkHienChiTietCP').value() });
+    try {
+        if (data.search('.pdf') != -1) {
+            $('#divNoiDung_us').attr("src", data);
+            $('#modal_xemtruockhiin_us').modal('show');
+        } else {
+            window.open(window.location.origin + data, '_blank');
+        }
+    } catch { window.open(window.location.origin + data, '_blank'); }
+    return false;
+}
+async function In_TTTHCPHauGiang() {
+    var dataKT = NTS.getAjax_v1('/View/quanly/SoHoav2/SoHoa_Nhap.aspx/KiemTraToTrinh', { data: $('#hfdsttHoSoVBLuuTrupr').value() });
+    if (dataKT.split('_')[0] == "-1") {
+        NTS.canhbao(dataKT.split('_')[1]);
+        return false;
+    }
+    var data = await NTS.getAjaxAsync('string', "/View/quanly/SoHoav2/SoHoa_Nhap.aspx/xuatWord_HauGiang", { sttHoSoLuuTrupr_sd: $('#hfdsttHoSoVBLuuTrupr').value(), chkHienChiPhiCon: $('#chkHienChiTietCP').value() });
+    try {
+        if (data.search('.pdf') != -1) {
+            $('#divNoiDung_us').attr("src", data);
+            $('#modal_xemtruockhiin_us').modal('show');
+        } else {
+            window.open(window.location.origin + data, '_blank');
+        }
+    } catch { window.open(window.location.origin + data, '_blank'); }
+    return false;
+}
+var LoaiDinhKem = 1;
+function dinKemFileVanBan(sttBaoCaoQTpr) {
+    document.getElementById("ctl00_ContentPlaceHolder1_hdfsttBaoCaoQTpr").value = sttBaoCaoQTpr;
+    $('#list-file2').html('');
+    $('#txtDuongDanFileVB2_us').value('');
+    AnHienXoaHetTepVB_us();
+    LoaiDinhKem = 1;
+    $('#mdDinhKem').modal('show');
+    return false;
+}
+
+$(document).on('click', '#btnChonTepVB2_us', function () {
+
+    $('#fileVB2_us').click();
+});
+$(document).on('change', '#fileVB2_us', function () {
+    var data = NTS.upload({
+        name: '#fileVB2_us',///ID input type="file"
+        loaiVB: 'VB',///Nhận 1 trong 2 giá trị DL hoặc VB
+    });
+    NTS.dongthongbao();
+    if (data.substring(data.lastIndexOf('.'), data.length).toLocaleLowerCase() != ".pdf" &&
+        data.substring(data.lastIndexOf('.'), data.length).toLocaleLowerCase() != ".doc" &&
+        data.substring(data.lastIndexOf('.'), data.length).toLocaleLowerCase() != ".docx" &&
+        data.substring(data.lastIndexOf('.'), data.length).toLocaleLowerCase() != ".zip" &&
+        data.substring(data.lastIndexOf('.'), data.length).toLocaleLowerCase() != ".rar") {
+        NTS.canhbao('File không đúng định dạng!');
+        return false;
+    }
+    if (data.length > 0) {
+        //$('#list-file2').html('');
+        $('#txtDuongDanFileVB2_us').value(data);
+        var param = new Array();
+        param[0] = data;
+        param[1] = document.getElementById("ctl00_ContentPlaceHolder1_hdfsttBaoCaoQTpr").value;
+        var pathTong = NTS.getAjax_v1('/View/QuanLy/QuyetToanHoanThanh/NopBaoCaoQT.aspx/luuFile', {
+            param: param
+        });
+        if (pathTong.split('_')[0] == "") {
+            NTS.canhbao('Tải file thất bại!');
+            return false;
+        }
+        var arrFile = new Array();
+        arrFile[0] = pathTong;
+        $('#list-file2').append(`<div class="frame-file">
+                                                    <div class="frame-top">
+                                                        <div class="frame-image" title="${pathTong.substring(pathTong.lastIndexOf('/') + 1, pathTong.length)}" style="background-image:url('/images/file.png')"></div>
+                                                    </div>
+                                                    <i class="fa fa-arrow-down download-file-attachments" data-url-file="${pathTong.replace('~', '').replaceAll('"', '')}"  data-loai-file="${LoaiVanBan}"></i>
+                                                    <i class="fa fa-trash-o delete-file-attachments" data-url-file="${pathTong.replaceAll('"', '')}"  data-loai-file="${LoaiVanBan}"></i>
+                                                </div>`);
+        AnHienXoaHetTepVB_us();
+        NTS.dongthongbao();
+        $('#mdDinhKem').modal('hide');
+        Grid3.refresh();
+        $('#mdDinhKem').modal('hide');
+    }
+
+});
+$(document).on('click', '.delete-file-attachments', function () {
+    var duongDan = $(this);
+    bootbox.confirm({
+        title: "",
+        message: "<p><h6>Bạn có thật sự muốn xóa đính kèm đã chọn không?</p><p> - Đồng ý xóa chọn 'Chấp nhận'</p><p>- Không đồng ý chọn 'Hủy bỏ'</p></h6>",
+        className: 'bb-alternate-modal',
+        buttons: {
+            cancel: {
+                label: '<i class="fa fa-close"></i> Hủy bỏ',
+                className: "btn-danger btn-sm",
+            },
+            confirm: {
+                label: '<i class="fa fa-check"></i> Chấp nhận',
+                className: "btn-primary btn-sm",
+            }
+        },
+        callback: function (result) {
+            if (result) {
+                var param = new Array();
+                param[0] = duongDan.attr('data-url-file');
+                param[1] = document.getElementById("ctl00_ContentPlaceHolder1_hdfsttBaoCaoQTpr").value;
+                var Kqua = NTS.getAjax_v1('/View/QuanLy/QuyetToanHoanThanh/NopBaoCaoQT.aspx/xoaFile', {
+                    param: param
+                });
+                if (Kqua == '1') {
+                    duongDan.parent('div').remove();
+                    AnHienXoaHetTepVB_us();
+                    NTS.thongbao('Xóa đính kèm thành công');
+                    Grid3.refresh();
+                }
+                else {
+                    NTS.thongbaoloi('Xóa đính kèm thất bại!');
+                }
+            }
+        }
+    });
+    return false;
+});
+function xemVB(data) {
+    try {
+        if (data.search('.pdf') != -1) {
+            $('#divNoiDung_us').attr("src", data);
+            $('#modal_xemtruockhiin_us').modal('show');
+        } else {
+            window.open(window.location.origin + data, '_blank');
+        }
+    } catch { window.open(window.location.origin + data, '_blank'); }
+}
+function xoaDinhKemVanBan(duongDan, hdfsttBaoCaoQTpr) {
+    bootbox.confirm({
+        title: "",
+        message: "<p><h6>Bạn có thật sự muốn xóa đính kèm đã chọn không?</p><p> - Đồng ý xóa chọn 'Chấp nhận'</p><p>- Không đồng ý chọn 'Hủy bỏ'</p></h6>",
+        className: 'bb-alternate-modal',
+        buttons: {
+            cancel: {
+                label: '<i class="fa fa-close"></i> Hủy bỏ',
+                className: "btn-danger btn-sm",
+            },
+            confirm: {
+                label: '<i class="fa fa-check"></i> Chấp nhận',
+                className: "btn-primary btn-sm",
+            }
+        },
+        callback: function (result) {
+            if (result) {
+                var param = new Array();
+                param[0] = duongDan;
+                param[1] = hdfsttBaoCaoQTpr;
+                var Kqua = NTS.getAjax_v1('/View/QuanLy/QuyetToanHoanThanh/NopBaoCaoQT.aspx/xoaFile', {
+                    param: param
+                });
+                if (Kqua == '1') {
+                    NTS.thongbao('Xóa đính kèm thành công');
+                    Grid3.refresh();
+                }
+                else {
+                    NTS.thongbaoloi('Xóa đính kèm thất bại!');
+                }
+            }
+        }
+    });
+    return false;
+};
+function AnHienXoaHetTepVB_us() {
+    if ($('#list-file2').html().length > 10) {
+        $('#btnChonTepVB2_us').css('display', 'none');
+    } else {
+        $('#btnChonTepVB2_us').css('display', 'inline');
+    }
+}
+
+
+
+
+
+///////// Chữ ký số đỉnh của chóp ///////
+
+var id_divAlert = '';
+$(document).on('click', '.kySoVanBan', function () {
+    var path = $(this).attr('data');
+    id_divAlert = $(this).attr('data-id'); // dùng để thay đổi trạng thái sau khi ký số
+    $("#file_input_CTS").val(path);
+    kyFileCTS();
+    return false;
+});
+
+function initPlugin() {
+    if (VtPluginSocket != undefined) {
+        if (VtPluginSocket.initPlugin()) {
+            // Kiểm tra thành công
+            return true;
+        } else {
+            NTS.thongbao("Khởi tạo Session không thành công!");
+        }
+    } else {
+        NTS.thongbaoloi("Không tồn tại đối tượng VtPluginSocket!");
+    }
+    return false;
+}
+
+// hàm kiểm tra trước khi ký số
+function kyFileCTS() {
+    try {
+        if (initPlugin()) {
+            signUSB();
+        }
+    } catch (e) {
+        NTS.canhbao("Không tìm thấy chữ ký số trên máy tính của bạn! Vui lòng kiểm tra lại!");
+    }
+}
+
+$(document).on('click', '.signature-file-attachments', function () {
+    $("#file_input_CTS").val($(this).attr('data-url-file'));
+    kyFileCTS();
+    return false;
+});
+
+function validate() {
+    if ($("#file_input_CTS").val().trim().length == 0) {
+        NTS.canhbao('Không tồn tại file pdf!');
+        return false;
+    }
+    return true;
+}
+// Khi nhấn nút ký số gọi ngay hàm này
+function signUSB() {
+    if (VtPluginSocket == undefined) {
+        NTS.thongbaoloi("Không tồn tại đối tượng VtPluginSocket");
+        return;
+    }
+    if (VtPluginSocket.hSession == "") {
+        if (!initPlugin()) {
+            return;
+        }
+    }
+
+    if (!validate()) {
+        return;
+    }
+
+    //Bước 1. Lấy CTS mà người dùng chọn
+    var certUserBase64 = VtPluginSocket.getCert();
+    if (certUserBase64 == "") {
+        NTS.canhbao("Chọn chứng thư số không thành công!");
+        return false;
+    }
+
+    //Bước 2. Đẩy CTS này lên Server để tạo Hash
+    var fileName = $("#file_input_CTS").val();
+    //var fieldName = jQuery("input[name=fieldName]").val();
+    //var displayText = jQuery("input[name=displayText]").val();
+    //showProgressing();
+    var areaId = "resultHashFile";
+    //jQuery("#resultHashFile").html("");
+    //var actionUrl = URL_WEB + 'USBToken/Hash';
+    //new Ajax.Updater(areaId, actionUrl, {
+    //    asynchronous: false,
+    //    method: 'post',
+    //    parameters: { certChainBase64: certUserBase64, fileName: fileName }
+    //    //parameters: { certChainBase64: certChainBase64, fileName: fileName, fieldName: fieldName, displayText: displayText }
+    //});
+    NTS.dongthongbao();
+    var ketQua = NTS.getAjax_v1('/View/quanly/SoHoav2/SoHoa_Nhap.aspx/Hash', { certChainBase64: certUserBase64, fileName: fileName });
+    if (ketQua.Err == true) {
+        NTS.canhbao(ketQua.Msg);
+        return;
+    }
+    else {
+        //statusResultHashFile***serialNumber***hashBase64
+        if (ketQua.Result.split('***')[0] == "error") {
+            NTS.canhbao("Tạo Hash không thành công");
+            return false;
+        }
+        if (ketQua.Result.split('***')[1] == "" || ketQua.Result.split('***')[2] == "") {
+            NTS.canhbao("Tạo Hash không thành công");
+            return false;
+        }
+    }
+
+    //if (jQuery("#resultHashFile input[name=statusResultHashFile]").length == 0) {
+    //    hideAllPopup();
+    //    alert("Tạo Hash không thành công");
+    //    return false;
+    //}
+    //if (jQuery("#resultHashFile input[name=statusResultHashFile]").val() != "success"
+    //    || jQuery("#resultHashFile input[name=serialNumber]").val() == undefined
+    //    || jQuery("#resultHashFile input[name=hashBase64]").val() == undefined
+    //    || jQuery("#resultHashFile input[name=serialNumber]").val().length == 0
+    //    || jQuery("#resultHashFile input[name=hashBase64]").val().length == 0) {
+    //    hideAllPopup();
+    //    if (jQuery("#resultHashFile input[name=descErrorHashFile]").val() != undefined
+    //        && jQuery("#resultHashFile input[name=descErrorHashFile]").val().length != 0) {
+    //        alert("Tạo Hash không thành công. " + jQuery("#resultHashFile input[name=descErrorHashFile]").val().trim());
+    //    } else {
+    //        alert("Tạo Hash không thành công");
+    //    }
+    //    return false;
+    //}
+
+    //var serialNumber = jQuery("#resultHashFile input[name=serialNumber]").val();
+    var hashBase64 = ketQua.Result.split('***')[2];
+    //var hashBase64 = jQuery("#resultHashFile input[name=hashBase64]").val();
+
+    if (hashBase64 == "") {
+        NTS.canhbao("Tạo Hash không thành công");
+        return false;
+    }
+
+    signHash(hashBase64);
+}
+
+function signHash(hashBase64) {
+    if (VtPluginSocket == undefined) {
+        NTS.thongbaoloi("Không tồn tại đối tượng VtPluginSocket");
+        return;
+    }
+    if (VtPluginSocket.hSession == "") {
+        if (!initPlugin()) {
+            return;
+        }
+    }
+
+    //Bước 3. Sau khi nhận mã Hash từ Server, gọi Plugin ký mã Hash này để thu được Chữ ký Signature
+    var signatureBase64 = VtPluginSocket.signHash(hashBase64);
+
+    if (signatureBase64 == null || signatureBase64 == undefined || signatureBase64.trim().length == 0) {
+        //hideAllPopup();
+        NTS.dongthongbao();
+        NTS.thongbaoloi("Sign Hash không thành công");
+        return false;
+    }
+
+    //Bước 4. Đẩy Chữ ký Signature lên Server để Import chữ ký này vào file kết quả.
+    //var fileName = jQuery("#resultUpload input[name=fileName]").val();
+    //areaId = "resultInsertSignature";
+    //jQuery("#resultInsertSignature").html("");
+    //var actionUrl = URL_WEB + 'USBToken/InsertSignatrue';
+    //new Ajax.Updater(areaId, actionUrl, {
+    //    asynchronous: false,
+    //    method: 'post',
+    //    parameters: { signatureBase64: signatureBase64, fileName: fileName }
+    //});
+    var fileName = $('#file_input_CTS').value();
+    var ketQua = NTS.getAjax_v1('/View/quanly/SoHoav2/SoHoa_Nhap.aspx/InsertSignatrue', { signature: signatureBase64, fileName: fileName });
+    NTS.dongthongbao();
+    if (ketQua.Err == true) {
+        NTS.dongthongbao();
+        NTS.thongbaoloi(ketQua.Msg);
+        return;
+    }
+    else {
+        //statusResultInsertSignature***signedFileName
+        if (ketQua.Result.split('***')[0] == "error") {
+            NTS.canhbao("Insert Signature không thành công");
+            return false;
+        }
+        if (ketQua.Result.split('***')[1] == "") {
+            NTS.canhbao("Insert Signature không thành công");
+            return false;
+        }
+    }
+    // đường dẫn file sau khi ký
+    //$('#noiDungKySo_us').attr("src", '');
+    //$('#noiDungKySo_us').attr("src", ketQua.Result.split('***')[2] + "?v=" + Math.random());
+    //alert(ketQua.Result.split('***')[2]);
+    //NTS.thongbao('Đã ký thành công!');
+    //if (jQuery("#resultInsertSignature input[name=statusResultInsertSignature]").length == 0) {
+    //    hideAllPopup();
+    //    alert("Insert Signature không thành công");
+    //    return false;
+    //}
+    //if (jQuery("#resultInsertSignature input[name=statusResultInsertSignature]").val() != "success"
+    //    || jQuery("#resultInsertSignature input[name=signedFileName]").val() == undefined
+    //    || jQuery("#resultInsertSignature input[name=signedFileName]").val().length == 0) {
+    //    hideAllPopup();
+    //    if (jQuery("#resultInsertSignature input[name=descErrorInsertSignature]").val() != undefined
+    //        && jQuery("#resultInsertSignature input[name=descErrorInsertSignature]").val().length != 0) {
+    //        alert("Insert Signature không thành công. " + jQuery("#resultInsertSignature input[name=descErrorInsertSignature]").val().trim());
+    //    } else {
+    //        alert("Insert Signature không thành công");
+    //    }
+    //    return false;
+    //}
+
+    //var signedFileName = jQuery("#resultInsertSignature input[name=signedFileName]").val();
+
+    //Bước 5. Download file đã ký về
+    //downloadFile(signedFileName);
+
+    //hideAllPopup();
+    // Xử lý cập nhật trạng thái DIV file đã ký
+    $('#' + id_divAlert).removeAttr('class');
+    $('#' + id_divAlert).addClass('alert alert-success');
+    $('#' + id_divAlert + ' button').removeAttr('class');
+    $('#' + id_divAlert + ' button').addClass('btn btn-sm btn-success');
+    $('#' + id_divAlert + ' button').prop('disabled', true);
+    $('#' + id_divAlert + ' button').html(`<i class="fa fa-check" aria-hidden="true"></i>&ensp;Đã ký số`);
+    $('#' + id_divAlert + ' span a').attr('href').split('?v')[0];
+    $('#' + id_divAlert + ' span a').attr('href', $('#' + id_divAlert + ' span a').attr('href').split('?v')[0] + "?v=" + Math.random());
+    NTS.thongbao('Đã ký thành công!');
+}
+
+
+
+function AnHienXoaHetTepVBKhac() {
+    if ($('#list-file-VBKhac').html().length > 10) {
+        $('#btnXoaHetTepVBKhac').css('display', 'inline');
+    } else {
+        $('#btnXoaHetTepVBKhac').css('display', 'none');
+    }
+}
+$(document).on('click', '#btnChonTepVBKhac', function () {
+    $('#fileVBKhac').click();
+});
+var PathVBKhac = '';
+var NTS2 = {
+    upload: function (options) {
+        var result;
+        var defaults = {
+            name: '',
+            loaiVB: '',
+            type: '',
+            multiplefiles: false
+        };
+        var settings = $.extend(defaults, options);
+        if (settings.loaiVB == '' || settings.loaiVB == 'undefined') {
+            result = "";
+            NTS.thongbaoloi("Bạn chưa cài đặt loại văn bản, vui lòng kiểm ra lại");
+            return result;
+        }
+        else if (settings.name == '' || settings.name == 'undefined' || $(settings.name).length == 0) {
+            NTS.thongbaoloi('Không tồn tại control ' + settings.name + ' cho hàm upload');
+            return result;
+        }
+        var fileUpload = $(settings.name).get(0);
+        var files = fileUpload.files;
+        var test = new FormData();
+        for (var i = 0; i < files.length; i++) {
+            test.append(files[i].name, files[i]);
+        }
+
+        $.ajax({
+            url: "/Services/" + (settings.multiplefiles == true ? "UpLoadDuLieuMultiple" : "UpLoadDuLieu") + ".ashx?loaiVB=" + settings.loaiVB + '&type=' + settings.type,
+            type: "POST",
+            contentType: false,
+            processData: false,
+            async: false,
+            data: test,
+            success: function (data) {
+                data = data.split('|');
+                if (data[0] == "1") {
+                    result = data[1];
+                    NTS.thongbao("Tải file thành công!");
+                }
+                else if (data[0] == "0") {
+                    result = "";
+                    NTS.thongbaoloi(data[1]);
+                }
+                else if (data[0] == "-1") {
+                    result = "";
+                    NTS.thongbaoloi(data[1]);
+                    setTimeout(function () { window.location.href = "/view/shared/main.aspx" }, 500);
+                }
+            },
+            error: function (err) {
+                result = "";
+                NTS.thongbaoloi("Tải file thất bại! Bạn vui lòng kiểm tra lại");
+            }
+        });
+        return result;
+    },
+}
+$(document).on('change', '#fileVBKhac', function () {
+    var data = NTS2.upload({
+        name: '#fileVBKhac',///ID input type="file"
+        loaiVB: 'VB',///Nhận 1 trong 2 giá trị DL hoặc VB
+        multiplefiles: true,
+    });
+
+    if (data.length > 0) {
+        //$('#list-file').html('');
+        $('#txtDuongDanFileVBKhac').value(($('#txtDuongDanFileVBKhac').value() + '*').replace('**', '*') + data);
+        /*   var LuuFile = NTS.getAjax('/QuanLy/NhapKTCaNhan/LuuVanBan', { PathTemp: data, ID: $('#QuyetDinhKTID').val() });*/
+        var arrFile = data.split('*');
+        for (var p = 0; p < arrFile.length; p++) {
+            if (arrFile[p].lastIndexOf('.') != -1) {
+                // file có đuôi .*
+                if (arrFile[p].substring(arrFile[p].lastIndexOf('.'), arrFile[p].length).toLocaleLowerCase() == ".png" ||
+                    arrFile[p].substring(arrFile[p].lastIndexOf('.'), arrFile[p].length).toLocaleLowerCase() == ".jpeg" ||
+                    arrFile[p].substring(arrFile[p].lastIndexOf('.'), arrFile[p].length).toLocaleLowerCase() == ".jpg") {
+                    $('#list-file-VBKhac').append(`<div class="frame-file">
+                                                    <div class="frame-top">
+                                                        <div class="frame-image" title="${arrFile[p].substring(arrFile[p].lastIndexOf('/') + 1, arrFile[p].length)}" style="background-image:url('${arrFile[p].replace('~', '')}')"></div>
+                                                    </div>
+                                                    <i class="fa fa-arrow-down download-file-attachments-VBKhac" data-url-file="${arrFile[p].replace('~', '')}"></i>
+                                                    <i class="fa fa-trash-o delete-file-attachments-VBKhac" data-url-file="${arrFile[p]}"></i>
+                                                </div>`);
+                } else {
+                    $('#list-file-VBKhac').append(`<div class="frame-file">
+                                                    <div class="frame-top">
+                                                        <div class="frame-image" title="${arrFile[p].substring(arrFile[p].lastIndexOf('/') + 1, arrFile[p].length)}" style="background-image:url('/images/file.png')"></div>
+                                                    </div>
+                                                    <i class="fa fa-arrow-down download-file-attachments-VBKhac" data-url-file="${arrFile[p].replace('~', '')}"></i>
+                                                    <i class="fa fa-trash-o delete-file-attachments-VBKhac" data-url-file="${arrFile[p]}"></i>
+                                                </div>`);
+                }
+            } else if (arrFile[p] != '') {
+                // file không đuôi
+                $('#list-file-VBKhac').append(`<div class="frame-file">
+                                                    <div class="frame-top">
+                                                        <div class="frame-image" title="${arrFile[p].substring(arrFile[p].lastIndexOf('/') + 1, arrFile[p].length)}" style="background-image:url('/images/file.png')"></div>
+                                                    </div>
+                                                    <i class="fa fa-arrow-down download-file-attachments-VBKhac" data-url-file="${arrFile[p].replace('~', '')}"></i>
+                                                    <i class="fa fa-trash-o delete-file-attachments-VBKhac" data-url-file="${arrFile[p]}"></i>
+                                                </div>`);
+            }
+        }
+        AnHienXoaHetTepVBKhac();
+    }
+});
+$(document).on('click', '.download-file-attachments-VBKhac', function () {
+    window.open($(this).attr('data-url-file'));
+    return false;
+});
+$(document).on('click', '.delete-file-attachments-VBKhac', function () {
+    var duongDan = $(this);
+    bootbox.confirm({
+        title: "",
+        message: "<p><h6>Bạn có thật sự muốn xóa đính kèm đã chọn không?</p><p> - Đồng ý xóa chọn 'Chấp nhận'</p><p>- Không đồng ý chọn 'Hủy bỏ'</p></h6>",
+        className: 'bb-alternate-modal',
+        buttons: {
+            cancel: {
+                label: '<i class="fa fa-close"></i> Hủy bỏ',
+                className: "btn-danger btn-sm",
+            },
+            confirm: {
+                label: '<i class="fa fa-check"></i> Chấp nhận',
+                className: "btn-primary btn-sm",
+            }
+        },
+        callback: function (result) {
+            if (result) {
+                if ($('#hfdsttVanBanpr_sd').value() != '') {
+                    var result = NTS.getAjax('json', '/View/quanly/SoHoav2/SoHoa_Nhap.aspx/XoaVanBanKhac', { ID: $('#hfdsttVanBanpr_sd').value(), Loai: 'one', DuongDan: duongDan.attr('data-url-file') });
+                    if (result.split('_')[0] == "1") {
+                        $('#txtDuongDanFileVBKhac').val($('#txtDuongDanFileVBKhac').val().replaceAll(duongDan.attr('data-url-file'), ''));
+                        duongDan.parent('div').remove();
+
+                        AnHienXoaHetTepVBKhac();
+                        NTS.thongbao(result.split('_')[1]);
+                    }
+                    else {
+                        $('#txtDuongDanFileVBKhac').val($('#txtDuongDanFileVBKhac').val().replaceAll(duongDan.attr('data-url-file'), ''));
+                        NTS.thongbaoloi(result.split('_')[1]);
+                    }
+                }
+                else {
+                    duongDan.parent('div').remove();
+                    AnHienXoaHetTepVBKhac();
+                    NTS.thongbao('Xóa đính kèm thành công!');
+                }
+            }
+        }
+    });
+    return false;
+});
+$(document).on('click', '#btnXoaHetTepVBKhac', function () {
+    bootbox.confirm({
+        title: "",
+        message: "<p><h6>Bạn có thật sự muốn xóa tất cả đính kèm không?</p><p> - Đồng ý xóa chọn 'Chấp nhận'</p><p>- Không đồng ý chọn 'Hủy bỏ'</p></h6>",
+        className: 'bb-alternate-modal',
+        buttons: {
+            cancel: {
+                label: '<i class="fa fa-close"></i> Hủy bỏ',
+                className: "btn-danger btn-sm",
+            },
+            confirm: {
+                label: '<i class="fa fa-check"></i> Chấp nhận',
+                className: "btn-primary btn-sm",
+            }
+        },
+        callback: function (result) {
+            if (result) {
+
+                if ($('#hfdsttVanBanpr_sd').value() != '') {
+                    var result = NTS.getAjax('json', '/View/quanly/SoHoav2/SoHoa_Nhap.aspx/XoaVanBanKhac', { ID: $('#hfdsttVanBanpr_sd').value(), Loai: 'all', DuongDan: $('#txtDuongDanFileVBKhac').value() });
+                    if (result.split('_')[0] == "1") {
+                        $('#list-file-VBKhac').html('');
+                        $('#txtDuongDanFileVBKhac').val('');
+                        AnHienXoaHetTepVBKhac();
+                        NTS.thongbao(result.split('_')[1]);
+                    }
+                    else {
+                        NTS.thongbaoloi(result.split('_')[1]);
+                    }
+                }
+                else {
+                    $('#list-file-VBKhac').html('');
+                    AnHienXoaHetTepVBKhac();
+                    NTS.thongbao('Xóa đính kèm thành công!');
+                }
+            }
+        }
+    });
+    return false;
+});
+
+// Ký số hàng loạt
+$(document).on('click', '#btnKySoVB', async function () {
+    if (Grid1.SelectedRecords.length == 0) {
+        NTS.canhbao('Vui lòng chọn dữ liệu trước khi ký số!');
+        return false;
+    }
+    else {
+        var gridSelect = Grid1.SelectedRecords;
+        var danhSachVanBan = "";
+        for (var i = 0; i < gridSelect.length; i++) {
+            var linkFile = gridSelect[i].DuongDan;
+            if (linkFile == null || linkFile == undefined) {
+                linkFile = "";
+            }
+            if (linkFile.trim() != "") {
+                var kiemtraFile = await NTS.getAjaxAsync('json', '/View/quanly/SoHoav2/SoHoa_Nhap.aspx/FileExists', { fileName: linkFile.replace('~', '') });
+                if (kiemtraFile == false) {
+                    continue;
+                }
+                var kiemTraTinhTrang = await NTS.getAjaxAsync('json', '/View/quanly/SoHoav2/SoHoa_Nhap.aspx/KiemtraFileKySo', { data: linkFile.replace('~', '') });
+                var tenVanBan = linkFile.split('/')[linkFile.split('/').length - 1];
+                //Kiểm tra file đã có ký số hay chưa
+                if (kiemTraTinhTrang) {
+                    // nếu đã ký
+                    danhSachVanBan += `
+<div class="alert alert-success" role="alert" style="margin: 2px">
+    <button class="btn btn-sm btn-success" disabled="disabled"><i class="fa fa-check" aria-hidden="true"></i>&ensp;Đã ký số</button>
+    &ensp;
+    <span><a class="link" href="${linkFile.replaceAll('~', '')}?v=${Math.random()}" target="_blank">${tenVanBan.replaceAll('~', '')}</a></span>
+</div>
+`;
+                } else {
+                    // chưa ký
+                    danhSachVanBan += `
+<div id="${i + `_fileKySo`}" class="alert alert-warning" role="alert" style="margin: 2px;transition-duration: 300ms;">
+    <button class="btn btn-sm btn-warning kySoVanBan" disabled="disabled" data="${linkFile.replaceAll('~', '')}" data-id="${i + `_fileKySo`}"><i class="fa fa-key" aria-hidden="true"></i>&ensp;Chưa ký số</button>
+    &ensp;
+    <span><a id="${i + `_linkKySo`}" class="link" href="${linkFile.replaceAll('~', '')}?v=${Math.random()}" target="_blank">${tenVanBan.replaceAll('~', '')}</a></span>
+</div>
+`;
+                }
+            }
+            //Hiển thị lên modal danh sách file
+        }
+        if (danhSachVanBan == "") {
+            NTS.canhbao("Không tìm thấy file trong danh sách dữ liệu bạn chọn! Vui lòng kiểm tra lại dữ liệu đã được đính kèm văn bản hay chưa?");
+            return false;
+        } else {
+            $('#divDanhSachVanBanKySo2').html(danhSachVanBan);
+            $('#mdKySoHangLoat').modal('show');
+        }
+    }
+});
+
+$(document).on('click', '#btn_KyHangLoat', function () {
+    $('#mdKySoHangLoat .kySoVanBan').each(function (v, e) {
+        var linkFile = $(this).attr('data');
+        if (linkFile != '') {
+            var path = $(this).attr('data').replace('~', '');
+            id_divAlert = $(this).attr('data-id'); // dùng để thay đổi trạng thái sau khi ký số
+            $("#file_input_CTS").val(path);
+            kyFileCTS();
+        }
+    });
+    return false;
+});

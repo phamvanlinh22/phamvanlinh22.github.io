@@ -1,0 +1,50 @@
+.chat-choice{
+  position: fixed;
+  bottom: 0px;
+  min-height: 55px;
+  width: 466px;
+  /*background: red;*/
+  box-shadow: 0px -1px 1px #D6D6D6;
+  display: flex;
+  background: white;
+  justify-content: center;
+  padding: 10px 0px 10px 0px;
+}
+.chat-choice>input{
+  width: 90%;
+  padding:5px 42px 5px 12px;
+  border:none;
+  font-size: 15px;
+  border-radius: 15px;
+  outline: none;
+  background: #E5E5E5;
+}
+.chat-choice>i{
+	font-weight: 900;
+    color: blue;
+    font-size: 20px;
+    margin:0px 5px 0px 5px;
+    cursor: pointer;
+    padding: 7px;
+    border-radius: 100%;
+    /*background: #e8e8e8;*/
+}
+.chat-choice>i:hover{
+	background: #E2FDFF;
+}
+.chat-choice>button{
+	    position: absolute;
+    right: 52px;
+    font-size: 20px;
+    outline: none;
+    background: none;
+    padding-top: 2px;
+    color: gray;
+    justify-content: center;
+    border: none;
+    border-radius: 100%;
+    top: 11px;
+}
+.chat-choice>button:hover{
+	color: #630AD1;
+}

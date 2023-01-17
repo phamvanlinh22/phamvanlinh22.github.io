@@ -1,0 +1,70 @@
+﻿$(function () {
+    NTS.loadDataCombo({
+        name: '#selKyBaoCao_head',
+        ajaxUrl: '/Services/WebServiceSystem.asmx/getKyBaoCao',
+        ajaxParam: '',
+    });
+    $.ajax({
+        type: "POST",
+        url: "/Services/WebServiceSystem.asmx/setWidhtHeight",
+        data: "{'width':'" + ($("#divNoiDung").width()) + "','height':'" + $("#divNoiDung").height() + "'}",
+        contentType: "application/json; charset=utf-8",
+        dataType: "json",
+        async: false,
+        success: function (response) { }
+    });
+    NTS.loadDataCombo({
+        name: '#selDuAn_head',
+        ajaxUrl: '/Services/WebServiceSystem.asmx/getDuAn',
+        ajaxParam: '',
+        columns: 1,
+        indexValue: 0,
+        indexText: 2,
+    });
+    $('#selKyBaoCao_head').val($('#ctl00_ctl12_hdfHeader_kyBaoCao').val() == "" ? "21" : $('#ctl00_ctl14_hdfHeader_kyBaoCao').val()).change();
+    var DataThongBao = NTS.getAjax('json', "/Services/WebServiceSystem.asmx/getThongBaoQT", {});
+    $('#NoiDungThongBao_hd').html(DataThongBao[0].NoiDung);
+    $('#lbTongThongBao').text(DataThongBao[1].NoiDung);
+    $('#selDuAn_head').value(NTS.getAjax('json', "/Services/WebService.asmx/getSTTDuAn", {}));
+});
+$(document).ready(function () {
+    $(document).on('select2:open', '#selDuAn_head', function () {
+        $('.select2-dropdown--below').css("margin-left", "-600px");
+    });
+    $(document).on('select2:open', '#selKyBaoCao_head', function () {
+        $('.select2-dropdown--below').css("margin-left", "0px");
+    });
+});
+$(window).resize(function () {
+    NTS.getAjax('json', "/Services/WebServiceSystem.asmx/setWidhtHeight", { width: $("#divNoiDung").width(), height: window.innerHeight });
+});
+function capNhatKyBaoCao() {
+    $('#ctl00_ctl12_hdfHeader_kyBaoCao').val($('#selKyBaoCao_head').value());
+    $.ajax({
+        type: "POST",
+        url: "/Services/WebServiceSystem.asmx/CapNhatKyBaoCao",
+        data: "{'tungay':'" + $('#txtTuNgay_head').val() + "','denngay':'" + $('#txtDenNgay_head').val() + "','kybaocao':'" + $('#selKyBaoCao_head').val() + "','ngayhachtoan':'" + $('#txtNgayHachToan_head').val() + "','sttDuAn':'" + $('#selDuAn_head').value() + "'}",
+        contentType: "application/json; charset=utf-8",
+        dataType: "json",
+        async: false,
+        success: function (response) {
+            var result = JSON.parse(response.d);
+            if (result) { //thành công
+                location.reload();
+                $('#selKyBaoCao_head').val($('#ctl00_UcHeader1_hdfHeader_kyBaoCao').val()).change();
+            }
+        },
+        error: function (x, e) {
+        }
+    });
+   
+}
+function OnClickMenu(duongDan) {
+    if (duongDan != "" && duongDan != "#") {
+    }
+}
+function setWidth() {
+    $('.select2-dropdown--below').css("margin-left", "-600px");
+    return false;
+}
+

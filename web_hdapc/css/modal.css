@@ -1,0 +1,132 @@
+.credit-container{
+	font-family: "Segoe UI", Helvetica, Arial, sans-serif;
+    width: 65%;
+    height: 950px;
+    margin: auto;
+    margin-top: 180px;
+    box-shadow: 0px 0px 1px #d8d8d8;
+    background: white;
+    margin-bottom: 40px;
+
+}
+.productCD-info{
+	display: flex;
+	flex-direction: row;
+	padding: 7px 7px 7px 7px;
+	border-bottom: 3px solid #4a90e2;
+}
+.productCD-info>img{
+	width: 80px;
+	margin-left: 5px;
+}
+.productCD-info>div{
+	margin-top: 7px;
+	margin-left: 10px;
+}
+.pdNameCD{
+	font-size: 17px;
+	font-weight:500;
+	color:#215ADB;
+	margin-bottom: 10px;
+}
+.priceCD{
+	display: flex;
+	flex-direction: row;
+}
+.giaspp{
+	/*font-weight: 500;*/
+	margin-right: 520px;
+}
+.adad{
+	color:#d0021b;
+	font-weight: 500;
+}
+.credit-title{
+	display: flex;
+	flex-direction: row;
+	text-align: center;
+	padding-top: 10px;
+	padding-bottom: 10px;
+	border-bottom: 2px solid #4a90e2;
+}
+.credit-title>img{
+	width: 50px;
+	margin-right: 15px;
+	margin-left:225px;
+}
+.abccc{
+	font-weight: bold;
+	color: black;
+}
+.abccc2{
+	font-weight: 500;
+	color: #454444;
+}
+.credit-note{
+	margin: 15px 8px 10px 8px;
+	padding: 5px;
+	font-size:14px;
+	border: 2px solid #EBB295;
+	border-radius: 5px;
+	background: #fef4eb;;
+}
+.main-credit{
+	margin: 5px 8px 10px 8px;
+}
+.time-credit{
+	display: flex;
+	flex-direction: row;
+	margin-top: 10px;
+}
+.time-credit>div{
+	border:1px solid #969595 ;
+	border-radius: 5px;
+	margin-right: 10px;
+	font-size: 16px;
+	color: #242323;
+	font-weight:bold;
+	/*box-shadow: 0px 0px 2px #374DF2;*/
+	padding: 5px 10px 5px 10px;
+	cursor: pointer;
+}
+.time-credit>div:hover{
+	background: red;
+	color: white;
+}
+.credit-cal{
+	/*border: 1px solid #BAB9B9;*/
+	border-color: #FFFFFF;
+	/*border-radius: 5px;*/
+	margin-top: 10px;
+	width: 100%;
+}
+.rowwwww{
+	background: #EFEFEF;
+}
+td{
+	height: 40px;
+	/*background: #EFEFEF;*/
+}
+.credit-c1{
+	width: 25%;
+	padding-left: 10px;
+}
+.credit-CT{
+	text-align: center;
+}
+.credit-CT>img{
+	width: 120px;
+}
+.hhhhh{
+	border-color: white;
+}
+select{
+	margin-left:10px;
+	padding: 5px;
+	color: blue;
+	font-weight:bold;
+	border-color: blue;
+}
+option{
+	color: blue;
+}
